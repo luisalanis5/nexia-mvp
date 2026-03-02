@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useRef } from 'react';
-import Image from 'next/image';
+
 
 type ProfileMediaEngineProps = {
     videoBgUrl?: string; // Now used for image background
@@ -24,16 +24,16 @@ export default function ProfileMediaEngine({ videoBgUrl, audioBgUrl }: ProfileMe
     return (
         <>
             {/* ── Fondo Dinámico Animado o Imagen Estática ── */}
-            <div className="fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900 via-slate-900 to-black">
+            <div className="fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900 via-slate-900 to-black overflow-hidden">
                 {videoBgUrl && (
                     <>
-                        <Image
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
                             src={videoBgUrl}
                             alt="Background"
-                            fill
-                            className="object-cover opacity-60 mix-blend-overlay"
+                            className="fixed top-0 left-0 w-full h-full object-cover -z-10 mix-blend-overlay opacity-60 pointer-events-none"
                         />
-                        <div className="absolute inset-0 bg-black/50 pointer-events-none"></div>
+                        <div className="fixed inset-0 bg-black/50 pointer-events-none -z-10"></div>
                     </>
                 )}
             </div>

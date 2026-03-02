@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { db } from '@/lib/firebase/client';
 import { doc, onSnapshot } from 'firebase/firestore';
+import { getContrastText } from '@/lib/utils/themeUtils';
 
 export interface PollWidgetProps {
     id?: string;
@@ -134,7 +135,7 @@ export default function PollWidget({ id, moduleId, creatorId, question, options:
                                         transition={{ duration: 0.8, ease: "easeOut" }}
                                         className="absolute inset-y-0 left-0 bg-gradient-to-r from-purple-600/50 to-blue-500/50"
                                     ></motion.div>
-                                    <div className="relative p-4 flex justify-between items-center z-10 w-full text-white">
+                                    <div className="relative p-4 flex justify-between items-center z-10 w-full" style={{ color: getContrastText('#a855f7') }}> {/* purple-500 is roughly #a855f7 */}
                                         <span className="font-semibold drop-shadow-md z-10 flex-1 truncate pr-2">{option}</span>
                                         <span className="font-bold text-sm drop-shadow-md z-10">{percentage}%</span>
                                     </div>

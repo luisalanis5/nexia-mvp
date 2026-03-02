@@ -24,7 +24,11 @@ export default function FeedManager() {
         const unsubscribe = onSnapshot(
             q,
             (snapshot) => {
-                setPosts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                const fetchedPosts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                // Deduplicate locally to avoid React 18 strict mode + Firebase cache duplicates
+                const uniquePostsMap = new Map();
+                fetchedPosts.forEach(post => uniquePostsMap.set(post.id, post));
+                setPosts(Array.from(uniquePostsMap.values()));
             },
             (error) => {
                 console.error("[FIREBASE DEBUG] Fallo onSnapshot en FeedManager | Creador:", creatorId, " | Error:", error.message);

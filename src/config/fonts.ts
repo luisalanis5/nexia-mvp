@@ -1,4 +1,4 @@
-import { Inter, Playfair_Display, Orbitron, Poppins } from 'next/font/google';
+import { Inter, Playfair_Display, Roboto_Mono, Montserrat } from 'next/font/google';
 
 export const fontInter = Inter({
     subsets: ['latin'],
@@ -10,22 +10,21 @@ export const fontPlayfair = Playfair_Display({
     display: 'swap',
 });
 
-export const fontOrbitron = Orbitron({
+export const fontRobotoMono = Roboto_Mono({
     subsets: ['latin'],
     display: 'swap',
 });
 
-export const fontPoppins = Poppins({
+export const fontMontserrat = Montserrat({
     subsets: ['latin'],
-    weight: ['400', '700', '900'],
     display: 'swap',
 });
 
 export const FONT_MAP: Record<string, string> = {
     'Inter': fontInter.className,
     'Playfair Display': fontPlayfair.className,
-    'Orbitron': fontOrbitron.className,
-    'Poppins': fontPoppins.className,
+    'Roboto Mono': fontRobotoMono.className,
+    'Montserrat': fontMontserrat.className,
 };
 
 export const FONT_WHITELIST = Object.keys(FONT_MAP);
