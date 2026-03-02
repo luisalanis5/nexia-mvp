@@ -460,7 +460,7 @@ export default function CreatorDashboard() {
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                         </svg>
                                         <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 w-64 p-3 text-xs bg-gray-900 border border-gray-700 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                                            ¿Cómo usar el Fondo de Video? Pega una URL de un video mp4. ¿Audio Ambiental? Pega un link de mp3. Se reproducirán en bucle en tu perfil.
+                                            ¿Cómo usar el Fondo de Pantalla? Pega una URL o sube una imagen optimizada. ¿Audio Ambiental? Pega un link de mp3.
                                         </div>
                                     </div>
                                     <form onSubmit={handleSaveProfile} className="space-y-6">
@@ -553,25 +553,76 @@ export default function CreatorDashboard() {
                                                 </select>
                                             </div>
                                             <div className="col-span-1 md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                                                {/* VIDEO BG - URL DE PLATAFORMA */}
+                                                {/* IMAGE BG - URL O UPLOAD */}
                                                 <div className="space-y-2">
-                                                    <label className="block text-sm font-medium text-gray-400">🎬 Fondo de Video</label>
+                                                    <label className="block text-sm font-medium text-gray-400">🖼️ Fondo de Pantalla</label>
                                                     {videoBgUrl ? (
                                                         <div className="flex items-center gap-2 bg-gray-800/60 p-2 rounded-xl border border-gray-700">
-                                                            <span className="text-xl">🎬</span>
-                                                            <span className="text-xs text-green-400 flex-1 truncate font-bold">Video activo ✓</span>
+                                                            <span className="text-xl">🖼️</span>
+                                                            <span className="text-xs text-green-400 flex-1 truncate font-bold">Fondo activo ✓</span>
                                                             <button type="button" onClick={() => setVideoBgUrl('')} className="text-red-400 text-xs px-2 py-1 bg-red-500/10 rounded-lg">✕ Quitar</button>
                                                         </div>
                                                     ) : (
-                                                        <input
-                                                            type="url"
-                                                            value={videoBgUrl}
-                                                            onChange={(e) => setVideoBgUrl(e.target.value)}
-                                                            placeholder="https://youtube.com/watch?v=... o vimeo.com/..."
-                                                            className="w-full bg-gray-800/50 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-purple-500 transition-colors"
-                                                        />
+                                                        <>
+                                                            <div className="flex flex-col gap-2">
+                                                                <input
+                                                                    type="url"
+                                                                    value={videoBgUrl}
+                                                                    onChange={(e) => setVideoBgUrl(e.target.value)}
+                                                                    placeholder="Ej: https://.../img.jpg"
+                                                                    className="w-full bg-gray-800/50 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-purple-500 transition-colors"
+                                                                />
+                                                                <label className="flex items-center justify-center gap-2 bg-gray-800/50 border border-dashed border-gray-600 rounded-xl h-[46px] cursor-pointer hover:border-purple-500/60 hover:bg-gray-800 transition-all text-gray-400">
+                                                                    <span className="text-xl">📤</span>
+                                                                    <span className="text-xs font-bold">Subir Imagen (Auto-optimizado)</span>
+                                                                    <input
+                                                                        type="file"
+                                                                        accept="image/*"
+                                                                        className="hidden"
+                                                                        onChange={async (e) => {
+                                                                            const file = e.target.files?.[0];
+                                                                            if (!file || !auth.currentUser) return;
+                                                                            setIsSaving(true);
+                                                                            try {
+                                                                                // Comprimir con canvas 
+                                                                                const compressedBlob = await new Promise<Blob>((resolve, reject) => {
+                                                                                    const img = new window.Image();
+                                                                                    const reader = new FileReader();
+                                                                                    reader.onload = (ev) => {
+                                                                                        img.src = ev.target?.result as string;
+                                                                                        img.onload = () => {
+                                                                                            const MAX = 1920;
+                                                                                            const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
+                                                                                            const canvas = document.createElement('canvas');
+                                                                                            canvas.width = Math.round(img.width * ratio);
+                                                                                            canvas.height = Math.round(img.height * ratio);
+                                                                                            const ctx = canvas.getContext('2d')!;
+                                                                                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                                                                                            canvas.toBlob(b => b ? resolve(b) : reject(new Error('canvas fail')), 'image/jpeg', 0.80);
+                                                                                        };
+                                                                                        img.onerror = reject;
+                                                                                    };
+                                                                                    reader.onerror = reject;
+                                                                                    reader.readAsDataURL(file);
+                                                                                });
+                                                                                const storageRef = ref(storage, `creators/${auth.currentUser.uid}/theme/bg-image-${Date.now()}.jpg`);
+                                                                                await uploadBytes(storageRef, compressedBlob, { contentType: 'image/jpeg' });
+                                                                                const url = await getDownloadURL(storageRef);
+                                                                                setVideoBgUrl(url);
+                                                                            } catch (err: any) {
+                                                                                console.error('[BG UPLOAD ERROR]', err);
+                                                                                toast.error(`Error al subir imagen: ${err?.code || err?.message || 'desconocido'}`);
+                                                                            } finally {
+                                                                                setIsSaving(false);
+                                                                                e.target.value = '';
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                </label>
+                                                            </div>
+                                                        </>
                                                     )}
-                                                    <p className="text-[11px] text-gray-500">Pega un enlace de YouTube, Vimeo o cualquier plataforma de video. Se reproducirá en tu perfil.</p>
+                                                    <p className="text-[11px] text-gray-500">Puedes subir tu propio fondo o pegar una URL directa.</p>
                                                 </div>
 
                                                 {/* AUDIO BG UPLOADER */}

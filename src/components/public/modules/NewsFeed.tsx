@@ -5,6 +5,8 @@ import { db } from '@/lib/firebase/client';
 import { collection, query, orderBy, onSnapshot, limit, doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
+import { isKnownEmbedUrl } from '@/components/public/MediaEmbed';
+import MediaEmbed from '@/components/public/MediaEmbed';
 
 export interface NewsFeedProps {
     id: string;
@@ -34,8 +36,8 @@ export default function NewsFeed({ id, creatorId, title = "Últimas Novedades" }
 
         const unsubscribe = onSnapshot(
             q,
-            (snapshot) => {
-                const newPosts = snapshot.docs.map(doc => ({
+            (snapshot: any) => {
+                const newPosts = snapshot.docs.map((doc: any) => ({
                     id: doc.id,
                     ...doc.data()
                 }));
@@ -44,7 +46,7 @@ export default function NewsFeed({ id, creatorId, title = "Últimas Novedades" }
                     return isEqual ? prev : newPosts;
                 });
             },
-            (error) => {
+            (error: any) => {
                 console.error("[FIREBASE DEBUG] Fallo onSnapshot en módulo: feed | ID:", id, " | Creador:", creatorId, " | Error:", error.message);
             }
         );
@@ -72,15 +74,23 @@ export default function NewsFeed({ id, creatorId, title = "Últimas Novedades" }
         }));
 
         try {
-            const postRef = doc(db, 'creators', creatorId, 'feed_posts', postId);
-            if (isLiked) {
-                await updateDoc(postRef, { likedBy: arrayRemove(localUserId) });
-            } else {
-                await updateDoc(postRef, { likedBy: arrayUnion(localUserId) });
+            const res = await fetch('/api/feed/like', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ creatorId, postId, localUserId, isLiked })
+            });
+            if (!res.ok) {
+                throw new Error("Error en servidor");
             }
         } catch (error) {
             console.error("Error toggling like:", error);
-            // Si falla, el onSnapshot corregirá el estado tarde o temprano
+            // Revertir optimistic UI si falla
+            setPosts(prev => prev.map(p => {
+                if (p.id === postId) {
+                    return post; // restore original
+                }
+                return p;
+            }));
         }
     };
 
@@ -94,15 +104,58 @@ export default function NewsFeed({ id, creatorId, title = "Últimas Novedades" }
                         {/* Acento Neon a la izquierda */}
                         <div className="absolute top-0 bottom-0 left-0 w-1 bg-gradient-to-b from-purple-500 to-blue-500 opacity-50 group-hover:opacity-100 transition-opacity"></div>
 
-                        <p className="text-gray-200 text-sm md:text-base leading-relaxed mb-3 whitespace-pre-wrap">
-                            {post.content}
-                        </p>
+                        {(() => {
+                            const urlRegex = /(https?:\/\/[^\s]+)/g;
+                            const matches = post.content?.match(urlRegex);
+                            let embedUrl = null;
 
-                        {post.imageUrl && (
-                            <div className="relative w-full h-48 rounded-xl overflow-hidden mb-3 border border-gray-700/50">
-                                <Image src={post.imageUrl} alt="Post Attach" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
-                            </div>
-                        )}
+                            // Check content links
+                            if (matches) {
+                                for (const url of matches) {
+                                    if (isKnownEmbedUrl(url)) {
+                                        embedUrl = url;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            // Also check if imageUrl is a media embed like spotify/yt
+                            if (!embedUrl && post.imageUrl && isKnownEmbedUrl(post.imageUrl)) {
+                                embedUrl = post.imageUrl;
+                            }
+
+                            return (
+                                <>
+                                    <p className="text-gray-200 text-sm md:text-base leading-relaxed mb-3 whitespace-pre-wrap">
+                                        {post.content}
+                                    </p>
+
+                                    {embedUrl && (
+                                        <div className="mb-3">
+                                            <MediaEmbed
+                                                videoUrl={embedUrl}
+                                                title="Contenido adjunto"
+                                            />
+                                        </div>
+                                    )}
+
+                                    {post.imageUrl && !isKnownEmbedUrl(post.imageUrl) && (
+                                        <div
+                                            className="relative w-full h-48 rounded-xl overflow-hidden mb-3 border border-gray-700/50"
+                                            onContextMenu={(e) => e.preventDefault()}
+                                        >
+                                            <Image
+                                                src={post.imageUrl}
+                                                alt="Post Attach"
+                                                fill
+                                                sizes="(max-width: 768px) 100vw, 50vw"
+                                                className="object-cover"
+                                            />
+                                        </div>
+                                    )}
+                                </>
+                            );
+                        })()}
 
                         <div className="flex justify-between items-center text-xs text-gray-500 font-medium border-t border-gray-800/50 pt-3 mt-2">
                             <span>{post.createdAt?.toDate ? new Date(post.createdAt.toDate()).toLocaleDateString('es-ES', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Reciente'}</span>

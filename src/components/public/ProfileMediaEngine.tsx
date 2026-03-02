@@ -1,61 +1,11 @@
 'use client';
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
+import Image from 'next/image';
 
 type ProfileMediaEngineProps = {
-    videoBgUrl?: string;
+    videoBgUrl?: string; // Now used for image background
     audioBgUrl?: string;
 };
-
-/**
- * Extrae el videoId de cualquier variante de URL de YouTube:
- * - https://youtu.be/VIDEO_ID
- * - https://youtu.be/VIDEO_ID?si=XXXX
- * - https://www.youtube.com/watch?v=VIDEO_ID
- * - https://www.youtube.com/watch?v=VIDEO_ID&si=XXXX
- */
-function extractYouTubeId(url: string): string | null {
-    try {
-        const u = new URL(url);
-        const host = u.hostname.replace('www.', '');
-
-        if (host === 'youtu.be') {
-            // pathname = /Afe0VDjezXc  → tomar primer segmento
-            const id = u.pathname.split('/').filter(Boolean)[0];
-            return id || null;
-        }
-        if (host === 'youtube.com') {
-            // ?v=VIDEO_ID
-            return u.searchParams.get('v');
-        }
-    } catch { /* url inválida */ }
-    return null;
-}
-
-function buildEmbedUrl(videoBgUrl: string): string | null {
-    const ytId = extractYouTubeId(videoBgUrl);
-    if (ytId) {
-        return (
-            `https://www.youtube-nocookie.com/embed/${ytId}` +
-            `?autoplay=1&mute=1&loop=1&playlist=${ytId}` +
-            `&controls=0&rel=0&modestbranding=1&playsinline=1`
-        );
-    }
-    // Vimeo
-    try {
-        const u = new URL(videoBgUrl);
-        if (u.hostname.includes('vimeo.com')) {
-            const id = u.pathname.split('/').filter(Boolean).pop();
-            if (id) return `https://player.vimeo.com/video/${id}?autoplay=1&muted=1&loop=1&background=1&dnt=1`;
-        }
-    } catch { /* */ }
-    return null;
-}
-
-function isDirectMp4(url: string): boolean {
-    try {
-        return /\.(mp4|webm|ogg)(\?|$)/i.test(new URL(url).pathname);
-    } catch { return false; }
-}
 
 export default function ProfileMediaEngine({ videoBgUrl, audioBgUrl }: ProfileMediaEngineProps) {
     const [isMuted, setIsMuted] = useState(true);
@@ -71,30 +21,19 @@ export default function ProfileMediaEngine({ videoBgUrl, audioBgUrl }: ProfileMe
         });
     };
 
-    const embedUrl = videoBgUrl ? buildEmbedUrl(videoBgUrl) : null;
-    const isMp4 = videoBgUrl ? isDirectMp4(videoBgUrl) : false;
-
-    const BG_STYLE: React.CSSProperties = {
-        position: 'fixed',
-        top: 0, left: 0,
-        width: '100vw', height: '100vh',
-        zIndex: -10,
-        pointerEvents: 'none',
-        overflow: 'hidden',
-    };
-
     return (
         <>
             {/* ── Fondo Dinámico Animado o Imagen Estática ── */}
             <div className="fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900 via-slate-900 to-black">
-                {videoBgUrl && !embedUrl && !isMp4 && (
+                {videoBgUrl && (
                     <>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
+                        <Image
                             src={videoBgUrl}
                             alt="Background"
-                            className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-30"
+                            fill
+                            className="object-cover opacity-60 mix-blend-overlay"
                         />
+                        <div className="absolute inset-0 bg-black/50 pointer-events-none"></div>
                     </>
                 )}
             </div>

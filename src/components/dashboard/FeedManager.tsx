@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { db, auth } from '@/lib/firebase/client';
+import { db, auth, storage } from '@/lib/firebase/client';
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, deleteDoc, doc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 
@@ -88,18 +89,45 @@ export default function FeedManager() {
                     onChange={e => setContent(e.target.value)}
                     className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-white transition-all resize-none"
                 />
-                <div>
+                <div className="flex flex-col md:flex-row gap-2">
                     <input
                         type="url"
                         placeholder="URL de imagen adjunta (Opcional)"
                         value={imageUrl}
                         onChange={e => setImageUrl(e.target.value)}
-                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-white transition-all"
+                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-white transition-all flex-1"
                     />
-                    <p className="text-gray-400 text-[11px] mt-2 ml-1">
-                        Pega el enlace directo de tu post de Instagram, imagen externa o pista de Spotify. No alojamos el archivo para que tu perfil cargue más rápido.
-                    </p>
+                    <label className="flex items-center justify-center gap-2 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm cursor-pointer hover:bg-gray-700 transition-all text-white font-bold h-full md:w-auto w-full">
+                        <span>📤 Subir Foto</span>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file || !auth.currentUser) return;
+                                if (file.size > 2 * 1024 * 1024) { toast.error('La imagen no puede superar 2MB'); return; }
+                                setIsPublishing(true);
+                                try {
+                                    const storageRef = ref(storage, `creators/${auth.currentUser.uid}/feed/${Date.now()}.jpg`);
+                                    await uploadBytes(storageRef, file);
+                                    const url = await getDownloadURL(storageRef);
+                                    setImageUrl(url);
+                                    toast.success('Imagen subida con éxito');
+                                } catch (err: any) {
+                                    console.error('[FEED UPLOAD ERROR]', err);
+                                    toast.error(`Error al subir imagen: ${err?.code || err?.message || 'desconocido'}`);
+                                } finally {
+                                    setIsPublishing(false);
+                                    e.target.value = '';
+                                }
+                            }}
+                        />
+                    </label>
                 </div>
+                <p className="text-gray-400 text-[11px] mt-2 ml-1">
+                    Pega una URL o sube directamente tu foto (máx 2MB).
+                </p>
 
                 <div className="flex justify-end pt-2">
                     <button
@@ -120,7 +148,10 @@ export default function FeedManager() {
                     <div key={post.id} className="p-4 bg-gray-800/20 border border-gray-700/50 rounded-2xl relative group">
                         <p className="text-gray-200 text-sm whitespace-pre-wrap">{post.content}</p>
                         {post.imageUrl && (
-                            <div className="relative mt-3 w-full h-32 rounded-lg border border-gray-700 overflow-hidden">
+                            <div
+                                className="relative mt-3 w-full h-32 rounded-lg border border-gray-700 overflow-hidden"
+                                onContextMenu={(e) => e.preventDefault()}
+                            >
                                 <Image src={post.imageUrl} alt="Adjunto" fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
                             </div>
                         )}
