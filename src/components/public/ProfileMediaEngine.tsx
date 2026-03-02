@@ -24,19 +24,19 @@ export default function ProfileMediaEngine({ videoBgUrl, audioBgUrl }: ProfileMe
     return (
         <>
             {/* ── Fondo Dinámico Animado o Imagen Estática ── */}
-            <div className="fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900 via-slate-900 to-black overflow-hidden">
-                {videoBgUrl && (
-                    <>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                            src={videoBgUrl}
-                            alt="Background"
-                            className="fixed top-0 left-0 w-full h-full object-cover -z-10 mix-blend-overlay opacity-60 pointer-events-none"
-                        />
-                        <div className="fixed inset-0 bg-black/50 pointer-events-none -z-10"></div>
-                    </>
-                )}
-            </div>
+            {videoBgUrl ? (
+                <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                        src={videoBgUrl}
+                        alt="Background"
+                        className="fixed top-0 left-0 w-full h-full object-cover -z-20"
+                    />
+                    <div className="fixed inset-0 bg-black/60 pointer-events-none -z-10"></div>
+                </>
+            ) : (
+                <div className="fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900 via-slate-900 to-black overflow-hidden"></div>
+            )}
 
             {/* ── Audio ambiental ── */}
             {audioBgUrl && (

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { db } from '@/lib/firebase/client';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+// no firebase/firestore imports for writes needed
 
 type QnAWidgetProps = {
     creatorId: string;
@@ -20,11 +20,16 @@ export default function QnAWidget({ title, placeholder, creatorId }: QnAWidgetPr
         if (question.trim() && creatorId && !isSending) {
             setIsSending(true);
             try {
-                await addDoc(collection(db, 'questions'), {
-                    receiverId: creatorId,
-                    content: question.trim(),
-                    createdAt: serverTimestamp()
+                const res = await fetch('/api/qa/ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ creatorId, content: question.trim() })
                 });
+
+                if (!res.ok) {
+                    throw new Error('Error al enviar la pregunta');
+                }
+
                 setSent(true);
                 setQuestion('');
                 setTimeout(() => setSent(false), 3000);

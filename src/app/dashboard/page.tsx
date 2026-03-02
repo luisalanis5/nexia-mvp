@@ -17,7 +17,7 @@ import { getSkin } from '@/config/themes';
 import { FONT_WHITELIST } from '@/config/fonts';
 import VerifiedBadge from '@/components/public/VerifiedBadge';
 import toast from 'react-hot-toast';
-import { getContrastText } from '@/lib/utils/themeUtils';
+import { getContrastYIQ } from '@/lib/utils/themeUtils';
 
 type CreatorData = {
     profile: {
@@ -446,7 +446,7 @@ export default function CreatorDashboard() {
                                             </div>
 
                                             <div className="flex justify-end pt-6">
-                                                <button type="submit" disabled={isSaving} className="w-full md:w-auto px-10 py-4 font-bold rounded-2xl transition-all disabled:opacity-50 shadow-lg hover:shadow-xl hover:-translate-y-1 active:scale-95" style={{ backgroundColor: primaryColor, color: getContrastText(primaryColor), boxShadow: `0 0 20px ${primaryColor}40` }}>{isSaving ? 'Guardando...' : 'Guardar Básicos'}</button>
+                                                <button type="submit" disabled={isSaving} className={`w-full md:w-auto px-10 py-4 font-bold rounded-2xl transition-all disabled:opacity-50 shadow-lg hover:shadow-xl hover:-translate-y-1 active:scale-95 ${getContrastYIQ(primaryColor)}`} style={{ backgroundColor: primaryColor, boxShadow: `0 0 20px ${primaryColor}40` }}>{isSaving ? 'Guardando...' : 'Guardar Básicos'}</button>
                                             </div>
                                         </form>
                                     </div>
@@ -670,8 +670,8 @@ export default function CreatorDashboard() {
                                             <button
                                                 type="submit"
                                                 disabled={isSaving}
-                                                className="w-full md:w-auto px-10 py-4 font-bold rounded-2xl transition-all disabled:opacity-50 shadow-lg hover:shadow-xl hover:-translate-y-1 active:scale-95"
-                                                style={{ backgroundColor: primaryColor, color: getContrastText(primaryColor), boxShadow: `0 0 20px ${primaryColor}40` }}
+                                                className={`w-full md:w-auto px-10 py-4 font-bold rounded-2xl transition-all disabled:opacity-50 shadow-lg hover:shadow-xl hover:-translate-y-1 active:scale-95 ${getContrastYIQ(primaryColor)}`}
+                                                style={{ backgroundColor: primaryColor, boxShadow: `0 0 20px ${primaryColor}40` }}
                                             >
                                                 {isSaving ? 'Guardando...' : 'Guardar Cambios'}
                                             </button>
