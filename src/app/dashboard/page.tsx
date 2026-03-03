@@ -14,7 +14,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recha
 import FeedManager from '@/components/dashboard/FeedManager';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getSkin } from '@/config/themes';
-import { FONT_WHITELIST } from '@/config/fonts';
+import { FONT_WHITELIST, FONT_MAP } from '@/config/fonts';
 import { fontDictionary } from '@/utils/fonts';
 import VerifiedBadge from '@/components/public/VerifiedBadge';
 import toast from 'react-hot-toast';
@@ -732,14 +732,14 @@ export default function CreatorDashboard() {
 
                             {/* LIVE PREVIEW CONTENT */}
                             <div
-                                className={`w-full h-full overflow-y-auto pb-20 scrollbar-hide ${activeSkinObj.containerClass} ${fontFamily && fontDictionary[fontFamily] ? fontDictionary[fontFamily].className : ''} !min-h-0 relative`}
+                                className={`w-full h-full overflow-y-auto pb-20 scrollbar-hide ${activeSkinObj.containerClass} ${videoBgUrl ? '!bg-transparent !bg-none' : ''} !min-h-0 relative`}
                                 style={{
                                     backgroundColor: activeSkin !== 'default' ? undefined : (videoBgUrl ? undefined : '#0d0d12'),
                                     backgroundImage: videoBgUrl ? `url(${videoBgUrl})` : 'none',
                                     backgroundSize: 'cover',
                                     backgroundPosition: 'center',
                                     color: activeSkin !== 'default' ? undefined : (getSafeTextColor(primaryColor) === '#FFFFFF' ? '#FFFFFF' : '#111827'),
-                                    fontFamily: 'inherit'
+                                    fontFamily: fontFamily && FONT_MAP[fontFamily] ? FONT_MAP[fontFamily] : 'var(--font-inter)'
                                 }}
                             >
                                 {/* Fondo de previsualización dinámico transparente si es requerido */}

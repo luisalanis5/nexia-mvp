@@ -150,10 +150,11 @@ export default async function CreatorProfile({ params }: { params: Promise<{ use
 
   const activeSkinId = theme.activeSkin || 'default';
   const isDefaultSkin = activeSkinId === 'default';
+  const hasImage = !!theme.videoBgUrl || !!theme.backgroundImage;
 
   // Si no es el skin por defecto, usamos el contenedor del skin.
-  // Si es el skin por defecto, usamos #0d0d12 u oscurecemos el fondo.
-  const mainClass = `min-h-screen w-full overflow-x-hidden antialiased ${!isDefaultSkin ? skin.containerClass : 'bg-[#0d0d12]'}`;
+  // Si tiene imagen, forzamos que el contenedor base sea transparente para no tapar la imagen
+  const mainClass = `min-h-screen w-full overflow-x-hidden antialiased ${!isDefaultSkin ? skin.containerClass : 'bg-[#0d0d12]'} ${hasImage ? '!bg-transparent !bg-none' : ''}`;
   const mainStyle = {
     fontFamily: customFontFamily,
     color: isDefaultSkin ? textColor : undefined
