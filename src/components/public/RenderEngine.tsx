@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import QnAWidget from './QnAWidget';
 import NativeAd from './NativeAd';
 import LinksList from './LinksList';
@@ -77,8 +78,8 @@ export default function RenderEngine({ layout, theme }: RenderEngineProps) {
                         key={block.id}
                         // CONTENEDOR OBLIGATORIO: Se adapta a la Skin o usa defaults. Quitamos padding y fondo si es Media/Ad
                         className={`w-full box-border overflow-hidden relative ${isMediaOrAd
-                                ? 'rounded-2xl'
-                                : (styles.usesSkinCard ? skin.cardClass : 'rounded-2xl p-5')
+                            ? 'rounded-2xl'
+                            : (styles.usesSkinCard ? skin.cardClass : 'rounded-2xl p-5')
                             } ${styles.hasImage && styles.usesSkinCard && !isMediaOrAd ? 'backdrop-blur-md' : ''}`}
                         style={{
                             backgroundColor: isMediaOrAd ? 'transparent' : styles.backgroundColor,
@@ -97,6 +98,15 @@ export default function RenderEngine({ layout, theme }: RenderEngineProps) {
                     </div>
                 );
             })}
+
+            {/* CTA Viral */}
+            <Link
+                href="/register"
+                className="flex items-center justify-center gap-2 py-3 px-6 mt-12 mb-6 mx-auto w-max rounded-full backdrop-blur-md bg-white/10 border border-white/20 shadow-lg transition-transform hover:scale-105 text-current"
+                style={{ fontFamily: 'inherit' }}
+            >
+                ⚡ Crea tu propio perfil en Nexia
+            </Link>
         </div>
     );
 }
