@@ -8,6 +8,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-nuxira: #c2cdff;
+  --color-nuxira-dark: #050505;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -26,6 +28,17 @@ body {
 }
 
 /* FORZAR HERENCIA LATERAL DE TIPOGRAFÍA */
-h1, h2, h3, h4, h5, h6, p, span, a, button, input, textarea {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+span,
+a,
+button,
+input,
+textarea {
   font-family: inherit;
 }

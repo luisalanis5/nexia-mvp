@@ -13,6 +13,8 @@ import RenderEngine from '@/components/public/RenderEngine';
 import LinksList from '@/components/public/LinksList';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import FeedManager from '@/components/dashboard/FeedManager';
+import AccountSettings from '@/components/dashboard/AccountSettings';
+import DeleteAccountZone from '@/components/dashboard/DeleteAccountZone';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getSkin } from '@/config/themes';
 import { FONT_WHITELIST, FONT_MAP } from '@/config/fonts';
@@ -81,7 +83,7 @@ export default function CreatorDashboard() {
     const [audioBgUrl, setAudioBgUrl] = useState('');
     const [fontFamily, setFontFamily] = useState('Inter');
 
-    const [activeTab, setActiveTab] = useState<'basics' | 'design' | 'modules'>('basics');
+    const [activeTab, setActiveTab] = useState<'basics' | 'design' | 'modules' | 'account'>('basics');
 
     // UI State para Mobile Preview
     const [showPreviewMobile, setShowPreviewMobile] = useState(false);
@@ -359,6 +361,7 @@ export default function CreatorDashboard() {
                             <button onClick={() => setActiveTab('basics')} className={`whitespace-nowrap px-4 py-2 font-bold rounded-lg transition-colors ${activeTab === 'basics' ? 'bg-gray-800 text-white' : 'text-gray-400 hover:text-white'}`}>Básicos</button>
                             <button onClick={() => setActiveTab('design')} className={`whitespace-nowrap px-4 py-2 font-bold rounded-lg transition-colors ${activeTab === 'design' ? 'bg-gray-800 text-white' : 'text-gray-400 hover:text-white'}`}>Diseño & Tema</button>
                             <button onClick={() => setActiveTab('modules')} className={`whitespace-nowrap px-4 py-2 font-bold rounded-lg transition-colors ${activeTab === 'modules' ? 'bg-gray-800 text-white' : 'text-gray-400 hover:text-white'}`}>Módulos & Contenido</button>
+                            <button onClick={() => setActiveTab('account')} className={`whitespace-nowrap px-4 py-2 font-bold rounded-lg transition-colors ${activeTab === 'account' ? 'bg-gray-800 text-white' : 'text-gray-400 hover:text-white'}`}>Ajustes de Cuenta</button>
                         </div>
 
                         <AnimatePresence mode="wait">
@@ -722,6 +725,14 @@ export default function CreatorDashboard() {
                                             </div>
                                         </div>
                                     )}
+                                </motion.div>
+                            )}
+
+                            {/* Pestaña de Ajustes de Cuenta */}
+                            {activeTab === 'account' && (
+                                <motion.div key="account" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} transition={{ duration: 0.2 }} className="space-y-8">
+                                    <AccountSettings />
+                                    <DeleteAccountZone />
                                 </motion.div>
                             )}
                         </AnimatePresence>

@@ -12,6 +12,7 @@ import { getSkin } from '@/config/themes';
 import { FONT_MAP } from '@/config/fonts';
 import { getUnifiedModuleStyles, getSafeTextColor } from '@/lib/utils/themeUtils';
 import { APP_NAME } from '@/config/brand';
+import PublicProfileCTA from '@/components/public/PublicProfileCTA';
 
 export const revalidate = 0;
 
@@ -243,13 +244,12 @@ export default async function CreatorProfile({ params }: { params: Promise<{ use
         {/* Módulos Dinámicos */}
         <RenderEngine layout={dynamicLayout} theme={theme} />
 
-        {/* Footer */}
-        <div className="mt-16 mb-8 text-center text-sm font-medium flex flex-col items-center gap-2" style={{ color: textColor }}>
-          <div className="w-10 h-1 rounded-full mb-2 opacity-50" style={{ backgroundColor: textColor }}></div>
-          <a href="/" className="hover:opacity-70 transition-opacity">
-            Potenciado por <span className="font-bold tracking-widest uppercase" style={{ color: theme.primaryColor }}>{APP_NAME}</span>
-          </a>
-        </div>
+        {/* CTA Dinámico (Footer) */}
+        <PublicProfileCTA
+          appName={APP_NAME}
+          textColor={textColor}
+          primaryColor={theme.primaryColor || '#c2cdff'}
+        />
       </div>
     </main>
   );

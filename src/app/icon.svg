@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+    <!-- Using the requested #c2cdff color as the base for the favicon -->
+    <path 
+        d="M 85 90 L 35 30 L 35 90 L 85 30" 
+        fill="none" 
+        stroke="#c2cdff" 
+        strokeWidth="35" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+    />
+    
+    <!-- White inner core stroke to maintain the X over N illusion -->
+    <path 
+        d="M 85 90 L 35 30 L 35 90 L 85 30" 
+        fill="none" 
+        stroke="#ffffff" 
+        strokeWidth="12" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+    />
+</svg>

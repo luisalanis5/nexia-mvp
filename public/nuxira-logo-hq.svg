@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 100" width="800" height="600" style="background-color: #050505;">
+    <defs>
+        <linearGradient id="nuxiraGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#00FFCC" />
+            <stop offset="100%" stopColor="#c2cdff" />
+        </linearGradient>
+        <filter id="nuxiraGlow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="6" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+    </defs>
+    <g filter="url(#nuxiraGlow)">
+        <path 
+            d="M 25 85 L 25 15 L 75 85 C 130 85, 130 15, 75 15 Z" 
+            fill="none" 
+            stroke="url(#nuxiraGradient)" 
+            stroke-width="12" 
+            stroke-linecap="round" 
+            stroke-linejoin="round" 
+        />
+    </g>
+</svg>
