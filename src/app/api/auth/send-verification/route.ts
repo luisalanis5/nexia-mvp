@@ -26,7 +26,7 @@ export async function POST(request: Request) {
                 from: 'Nuxira <onboarding@resend.dev>',
                 to: email,
                 subject: 'Verifica tu cuenta de Nuxira 🚀',
-                react: VerificationEmail({ name: name || 'Creador', verificationLink }) as React.ReactElement
+                react: VerificationEmail({ name: name || 'Creador', verificationLink }) as any
             });
         }
 
