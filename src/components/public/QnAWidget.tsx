@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { db } from '@/lib/firebase/client';
-// no firebase/firestore imports for writes needed
+import toast from 'react-hot-toast';
 
 import { getSkin } from '@/config/themes';
 import { getSafeTextColor } from '@/lib/utils/themeUtils';
@@ -42,6 +42,7 @@ export default function QnAWidget({ title, placeholder, creatorId, theme, public
                 setTimeout(() => setSent(false), 3000);
             } catch (err) {
                 console.error("Error sending question:", err);
+                toast.error("Hubo un problema al enviar tu pregunta.");
             } finally {
                 setIsSending(false);
             }
