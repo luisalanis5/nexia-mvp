@@ -239,6 +239,8 @@ export default function CreatorDashboard() {
         try {
             const response = await fetch('/api/stripe/checkout-premium', {
                 method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ uid: auth.currentUser.uid }),
             });
 
             const data = await response.json();
