@@ -814,7 +814,7 @@ export default function CreatorDashboard() {
 
                             {/* LIVE PREVIEW CONTENT */}
                             <div
-                                className={`w-full h-full overflow-y-auto pb-20 scrollbar-hide ${activeSkinObj.containerClass} ${videoBgUrl ? '!bg-transparent !bg-none' : ''} !min-h-0 relative`}
+                                className={`w-full h-full overflow-y-auto pb-20 scrollbar-hide ${activeSkinObj.containerClass} ${videoBgUrl ? '!bg-transparent' : ''} !min-h-0 relative`}
                                 style={{
                                     backgroundColor: activeSkin !== 'default' ? undefined : (videoBgUrl ? undefined : '#0d0d12'),
                                     backgroundImage: videoBgUrl ? `url(${videoBgUrl})` : 'none',

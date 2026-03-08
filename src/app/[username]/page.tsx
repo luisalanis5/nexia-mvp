@@ -53,7 +53,9 @@ export default async function CreatorProfile({ params }: { params: Promise<{ use
   if (snapshot.empty) return notFound();
 
   const creatorData = snapshot.docs[0].data();
-  const profile = creatorData.profile || creatorData;
+  // Root-level fields ALWAYS win over any legacy nested `profile` object.
+  // The dashboard saves displayName/bio at the root level — those must take priority.
+  const profile = { ...(creatorData.profile || {}), ...creatorData };
   const theme = creatorData.theme || { primaryColor: '#00FFCC', mode: 'dark', activeSkin: 'default' };
   const modules = creatorData.modules || [];
   const isPremium = creatorData.isPremium || false;
