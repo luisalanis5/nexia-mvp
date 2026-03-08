@@ -252,12 +252,12 @@ export default async function CreatorProfile({ params }: { params: Promise<{ use
             )}
           </div>
 
-          <div className="flex-1 min-w-0">
-            <h1 className="text-3xl font-bold leading-tight break-words text-left flex items-center text-current gap-2" style={{ fontFamily: 'inherit', color: isHeaderWhite ? '#FFFFFF' : 'inherit' }}>
-              <span>{profile.displayName || `@${username}`}</span>
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <h1 className="text-2xl sm:text-3xl font-bold leading-tight break-words text-left flex items-center flex-wrap text-current gap-2" style={{ fontFamily: 'inherit', color: isHeaderWhite ? '#FFFFFF' : 'inherit' }}>
+              <span className="break-words min-w-0">{profile.displayName || `@${username}`}</span>
               {isVerified && <VerifiedBadge />}
             </h1>
-            <p className="text-lg break-words text-left mt-1 text-current" style={{ fontFamily: 'inherit', color: isHeaderWhite ? '#FFFFFF' : 'inherit' }}>
+            <p className="text-base sm:text-lg break-words text-left mt-1 text-current" style={{ fontFamily: 'inherit', color: isHeaderWhite ? '#FFFFFF' : 'inherit' }}>
               {profile.bio || `Creador en ${APP_NAME}`}
             </p>
             <span className="text-sm mt-1 block text-left opacity-60 break-all">

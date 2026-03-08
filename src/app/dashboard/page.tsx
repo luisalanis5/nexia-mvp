@@ -130,7 +130,7 @@ export default function CreatorDashboard() {
                     setButtonStyle(data.theme?.buttonStyle || 'rounded');
                     setThemeMode(data.theme?.mode || 'dark');
                     setActiveSkin(data.theme?.activeSkin || 'default');
-                    setVideoBgUrl(data.theme?.videoBgUrl || '');
+                    setVideoBgUrl(data.theme?.videoBgUrl || data.theme?.backgroundImage || '');
                     setAudioBgUrl(data.theme?.audioBgUrl || '');
                     setFontFamily(data.theme?.fontFamily || 'Inter');
                 }
@@ -161,6 +161,7 @@ export default function CreatorDashboard() {
                 'theme.mode': themeMode,
                 'theme.activeSkin': activeSkin,
                 'theme.videoBgUrl': videoBgUrl,
+                'theme.backgroundImage': videoBgUrl, // keep both fields in sync for the public profile
                 'theme.audioBgUrl': audioBgUrl,
                 'theme.fontFamily': fontFamily,
             });
@@ -170,7 +171,7 @@ export default function CreatorDashboard() {
                 ...prev,
                 displayName,
                 bio,
-                theme: { ...prev.theme, primaryColor, fontMode, buttonStyle, mode: themeMode, activeSkin, videoBgUrl, audioBgUrl, fontFamily }
+                theme: { ...prev.theme, primaryColor, fontMode, buttonStyle, mode: themeMode, activeSkin, videoBgUrl, backgroundImage: videoBgUrl, audioBgUrl, fontFamily }
             } : null);
 
             toast.success("¡Configuración guardada!");
