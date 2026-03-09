@@ -10,7 +10,7 @@ const stripe = new Stripe((process.env.STRIPE_SECRET_KEY || '').trim(), {
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
 // ─── IMPORTANT: Disable Next.js body parsing so we get the raw body for signature verification ───
-export const config = { api: { bodyParser: false } };
+//export const config = { api: { bodyParser: false } };
 
 export async function POST(req: Request) {
     const body = await req.text();

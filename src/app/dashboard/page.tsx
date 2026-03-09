@@ -480,7 +480,7 @@ export default function CreatorDashboard() {
                             <button onClick={() => setActiveTab('payments')} className={`whitespace-nowrap px-4 py-2 font-bold rounded-lg transition-colors ${activeTab === 'payments' ? 'bg-gray-800 text-white' : 'text-gray-400 hover:text-white'}`}>🏦 Pagos</button>
                             <button onClick={() => setActiveTab('settings')} className={`whitespace-nowrap px-4 py-2 font-bold rounded-lg transition-colors ${activeTab === 'settings' ? 'bg-gray-800 text-white' : 'text-gray-400 hover:text-white'}`}>⚙️ Configuración</button>
 
-                            {creatorData?.role === 'admin' && (
+                            {(creatorData as any)?.role === 'admin' && (
                                 <button
                                     onClick={() => router.push('/admin-dashboard')}
                                     className="whitespace-nowrap px-4 py-2 font-bold rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500 hover:text-white transition-all ml-auto"
