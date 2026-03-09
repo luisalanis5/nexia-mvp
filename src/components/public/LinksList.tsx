@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { FaInstagram, FaGithub, FaApple, FaGooglePlay, FaLink, FaTiktok, FaYoutube, FaFacebook, FaSpotify, FaTwitter, FaTwitch } from 'react-icons/fa';
+import { FaInstagram, FaGithub, FaApple, FaGooglePlay, FaLink, FaTiktok, FaYoutube, FaFacebook, FaSpotify, FaTwitch } from 'react-icons/fa';
+import { FaXTwitter } from 'react-icons/fa6';
 import { getSkin } from '@/config/themes';
 import { generatePalette, getUnifiedModuleStyles } from '@/lib/utils/themeUtils';
 
@@ -34,7 +35,7 @@ const getIconForUrl = (url: string) => {
     if (lowerUrl.includes('youtube.com')) return <FaYoutube className="w-6 h-6 text-red-500" />;
     if (lowerUrl.includes('facebook.com')) return <FaFacebook className="w-6 h-6 text-blue-600" />;
     if (lowerUrl.includes('spotify.com')) return <FaSpotify className="w-6 h-6 text-green-500" />;
-    if (lowerUrl.includes('twitter.com') || lowerUrl.includes('x.com')) return <FaTwitter className="w-6 h-6 text-blue-400" />;
+    if (lowerUrl.includes('twitter.com') || lowerUrl.includes('x.com')) return <FaXTwitter className="w-6 h-6 text-white" />;
     if (lowerUrl.includes('twitch.tv')) return <FaTwitch className="w-6 h-6 text-purple-600" />;
     return <FaLink className="w-6 h-6 text-gray-400" />;
 };
