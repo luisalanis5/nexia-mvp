@@ -229,7 +229,7 @@ export default async function CreatorProfile({ params }: { params: Promise<{ use
       <div className="relative z-10 max-w-md mx-auto p-6 pt-16 flex flex-col items-center">
         {/* Cabecera del Creador Unificada */}
         <div
-          className={`relative flex items-center gap-6 p-6 w-full max-w-2xl mx-auto mb-8 overflow-hidden transition-all duration-300 ${headerStyles.usesSkinCard ? skin.cardClass : 'rounded-3xl shadow-xl'} ${headerStyles.hasImage ? 'backdrop-blur-md' : ''}`}
+          className={`relative flex items-center gap-6 p-6 w-full max-w-2xl mx-auto mb-8 transition-all duration-300 ${headerStyles.usesSkinCard ? skin.cardClass : 'rounded-3xl shadow-xl'} ${headerStyles.hasImage ? 'backdrop-blur-md' : ''}`}
           style={{
             backgroundColor: headerStyles.backgroundColor,
             boxShadow: headerStyles.boxShadow,
@@ -254,7 +254,7 @@ export default async function CreatorProfile({ params }: { params: Promise<{ use
             )}
           </div>
 
-          <div className="flex-1 min-w-0 overflow-hidden">
+          <div className="flex-1 min-w-0">
             <h1 className="text-2xl sm:text-3xl font-bold leading-tight break-words text-left flex items-center flex-wrap text-current gap-2" style={{ fontFamily: 'inherit', color: isHeaderWhite ? '#FFFFFF' : 'inherit' }}>
               <span className="break-words min-w-0">{profile.displayName || `@${username}`}</span>
               {isVerified && <VerifiedBadge />}
