@@ -13,34 +13,40 @@ const firebaseConfig = {
 };
 
 // Inicializa Firebase solo si no se ha hecho ya (vital para Next.js)
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 export const auth = getAuth(app);
+export const storage = getStorage(app);
+export const googleProvider = new GoogleAuthProvider();
+export const facebookProvider = new FacebookAuthProvider();
+export const twitterProvider = new TwitterAuthProvider();
 
-// Configuración de Caché Offline (Solo Cliente)
+// Configuración de Firestore con Persistencia Robusta
 let db: ReturnType<typeof getFirestore>;
 
 if (typeof window !== 'undefined') {
+    // En el cliente, intentamos inicializar con persistencia multi-pestaña
     try {
+        // initializeFirestore solo debe llamarse una vez por App. 
+        // Si ya existe una instancia activa, getFirestore(app) la devolverá.
         db = initializeFirestore(app, {
-            localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+            localCache: persistentLocalCache({
+                tabManager: persistentMultipleTabManager()
+            })
         });
     } catch (e: any) {
-        // En caso de que ya estuviera inicializado o hubiera un error de IndexedDB
+        // Si ya está inicializado (común en HMR), usamos la instancia existente
         db = getFirestore(app);
 
-        // FIX: Error de Firestore "update time that is in the future"
-        if (e.message && e.message.includes('future')) {
-            console.warn("Limpiando caché de IndexedDB debido a un error de sincronización de tiempo...");
+        // Manejo de errores específicos de sincronización
+        if (e.code === 'failed-precondition' || (e.message && e.message.includes('future'))) {
+            console.warn("[Firestore] Limpiando persistencia por conflicto de estado/tiempo...");
             clearIndexedDbPersistence(db).catch(() => { });
         }
     }
 } else {
+    // En el servidor (SSR/Edge), Firestore estándar sin caché local
     db = getFirestore(app);
 }
 
 export { db };
-export const googleProvider = new GoogleAuthProvider();
-export const facebookProvider = new FacebookAuthProvider();
-export const twitterProvider = new TwitterAuthProvider();
-export const storage = getStorage(app);
