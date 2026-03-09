@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { db, auth, storage } from '@/lib/firebase/client';
-import { collection, query, getDocs, doc, deleteDoc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, getDocs, doc, getDoc, deleteDoc, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, deleteObject } from 'firebase/storage';
 import { onAuthStateChanged } from 'firebase/auth';
 import toast from 'react-hot-toast';
@@ -30,24 +30,44 @@ export default function AdminDashboardPage() {
     const [deniedUid, setDeniedUid] = useState<string | null>(null);
     const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
-    const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID;
-
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
-                if (user.uid === ADMIN_UID) {
-                    setIsAdmin(true);
-                    fetchRequests();
-                } else {
-                    setDeniedUid(user.uid);
+                try {
+                    // Resetear estados previos por seguridad
+                    setIsAdmin(false);
+                    setDeniedUid(null);
+
+                    // Verificación de ROL en Firestore (Capa 2)
+                    const creatorRef = doc(db, 'creators', user.uid);
+                    const creatorSnap = await getDoc(creatorRef);
+
+                    if (creatorSnap.exists() && creatorSnap.data().role === 'admin') {
+                        setIsAdmin(true);
+                        fetchRequests();
+                    } else {
+                        // Si no es admin, fuera.
+                        setDeniedUid(user.uid);
+                        // Redirección forzada tras un breve delay si el usuario intenta quedarse
+                        setTimeout(() => {
+                            if (!isAdmin) router.push('/dashboard');
+                        }, 5000);
+                    }
+                } catch (err) {
+                    console.error("Error validando rol admin:", err);
+                    router.push('/dashboard');
+                } finally {
+                    setIsLoading(false);
                 }
             } else {
-                router.push('/login');
+                setDeniedUid(null);
+                setIsAdmin(false);
+                router.push('/dashboard/login');
             }
         });
 
         return () => unsubscribe();
-    }, [router, ADMIN_UID]);
+    }, [router]);
 
     const fetchRequests = async () => {
         setIsLoading(true);
@@ -136,12 +156,29 @@ export default function AdminDashboardPage() {
                         <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Tu UID actual es:</p>
                         <code className="text-blue-400 font-mono text-lg">{deniedUid}</code>
                     </div>
-                    <p className="text-sm text-gray-500 mt-6 max-w-md">
-                        Si tú eres el dueño, copia este código exacto, pégalo en <code className="bg-gray-800 px-1 rounded text-gray-300">NEXT_PUBLIC_ADMIN_UID</code> dentro de <code className="bg-gray-800 px-1 rounded text-gray-300">.env.local</code> y <strong>reinicia tu servidor</strong>.
+                    <p className="text-sm text-gray-500 mt-6 max-w-md italic">
+                        Para entrar, ve a tu <strong className="text-white">Firebase Console</strong>, busca el documento con tu UID en la colección <code className="bg-gray-800 px-1 rounded text-gray-300">creators</code>, y agrega o cambia el campo:
                     </p>
-                    <button onClick={() => router.push('/')} className="mt-8 px-6 py-2 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors">
-                        Volver al Inicio
-                    </button>
+                    <div className="mt-4 bg-[#1a1a1a] p-3 rounded-lg border border-gray-800 font-mono text-xs">
+                        <span className="text-purple-400">role</span>: <span className="text-green-400">"admin"</span>
+                    </div>
+                    <div className="mt-8 flex flex-col sm:flex-row gap-4">
+                        <button
+                            onClick={() => router.push('/')}
+                            className="px-6 py-2 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition-colors"
+                        >
+                            Volver al Inicio
+                        </button>
+                        <button
+                            onClick={async () => {
+                                await auth.signOut();
+                                router.push('/dashboard/login');
+                            }}
+                            className="px-6 py-2 bg-gray-900 text-gray-400 border border-gray-800 font-bold rounded-lg hover:bg-gray-800 hover:text-white transition-all"
+                        >
+                            Cerrar Sesión (Cambiar cuenta)
+                        </button>
+                    </div>
                 </div>
             );
         }

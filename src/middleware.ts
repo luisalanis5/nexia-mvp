@@ -5,8 +5,11 @@ export function middleware(request: NextRequest) {
     const sessionToken = request.cookies.get('nuxira-session')?.value;
     const { pathname } = request.nextUrl;
 
-    // 1. Entrar al Dashboard sin sesión -> Redirigir a Login
-    if (pathname.startsWith('/dashboard') && !pathname.includes('/login') && !pathname.includes('/register')) {
+    // 1. Entrar al Dashboard o Admin sin sesión -> Redirigir a Login
+    const isAdminRoute = pathname.startsWith('/admin') || pathname.startsWith('/admin-dashboard');
+    const isDashboardRoute = pathname.startsWith('/dashboard');
+
+    if ((isDashboardRoute || isAdminRoute) && !pathname.includes('/login') && !pathname.includes('/register')) {
         if (!sessionToken) {
             return NextResponse.redirect(new URL('/dashboard/login', request.url));
         }
@@ -23,6 +26,8 @@ export function middleware(request: NextRequest) {
 // Configurar en qué rutas se activará el middleware
 export const config = {
     matcher: [
-        '/dashboard/:path*', // Protege todo el dashboard y sus subrutas
+        '/dashboard/:path*',
+        '/admin/:path*',
+        '/admin-dashboard/:path*',
     ],
 };

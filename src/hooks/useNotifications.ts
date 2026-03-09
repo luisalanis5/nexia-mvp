@@ -30,6 +30,8 @@ export const useNotifications = () => {
 
             setNotifications(notifs);
             setUnreadCount(notifs.filter(n => !n.isRead).length);
+        }, (error) => {
+            console.error('[FIREBASE DEBUG] Fallo onSnapshot en useNotifications | Error:', error.message);
         });
 
         return () => unsubscribe();
