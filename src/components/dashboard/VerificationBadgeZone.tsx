@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { db, storage, auth } from '@/lib/firebase/client';
+import { db, auth } from '@/lib/firebase/client';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import toast from 'react-hot-toast';
+import ImageUploader from '@/components/dashboard/ImageUploader';
 
 interface VerificationBadgeZoneProps {
     creatorData: any;
@@ -30,8 +30,7 @@ export default function VerificationBadgeZone({ creatorData }: VerificationBadge
     // Form state
     const [socialUrl, setSocialUrl] = useState('');
     const [category, setCategory] = useState('');
-    const [proofFile, setProofFile] = useState<File | null>(null);
-    const [proofPreview, setProofPreview] = useState<string | null>(null);
+    const [proofUrl, setProofUrl] = useState<string | null>(null);
 
     useEffect(() => {
         const checkStatus = async () => {
@@ -62,47 +61,26 @@ export default function VerificationBadgeZone({ creatorData }: VerificationBadge
         checkStatus();
     }, [creatorData]);
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        if (!file.type.startsWith('image/')) {
-            toast.error('Solo se permiten imágenes (JPG, PNG, etc.)');
-            return;
-        }
-        if (file.size > 5 * 1024 * 1024) {
-            toast.error('La imagen no puede superar los 5 MB.');
-            return;
-        }
-        setProofFile(file);
-        const reader = new FileReader();
-        reader.onload = (ev) => setProofPreview(ev.target?.result as string);
-        reader.readAsDataURL(file);
-    };
+    // handleFileChange deleted since we use ImageUploader
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!creatorData?.uid || !auth.currentUser) return;
-        if (!socialUrl || !category || !proofFile) {
+        if (!socialUrl || !category || !proofUrl) {
             toast.error('Todos los campos son obligatorios.');
             return;
         }
 
         setIsSubmitting(true);
         try {
-            // 1. Upload proof image to Firebase Storage
-            const storagePath = `verification_requests/${creatorData.uid}/${proofFile.name}`;
-            const storageRef = ref(storage, storagePath);
-            await uploadBytes(storageRef, proofFile, { contentType: proofFile.type });
-            const imageUrl = await getDownloadURL(storageRef);
-
-            // 2. Write/update document in verification_requests collection
+            // Document write/update in verification_requests collection
             const requestRef = doc(db, 'verification_requests', creatorData.uid);
             await setDoc(requestRef, {
                 uid: creatorData.uid,
                 username: creatorData.username,
                 category,
                 socialLink: socialUrl,
-                imageUrl,
+                imageUrl: proofUrl, // Already uploaded by ImageUploader
                 status: 'pending',
                 createdAt: serverTimestamp(),
             });
@@ -202,43 +180,23 @@ export default function VerificationBadgeZone({ creatorData }: VerificationBadge
                             </select>
                         </div>
 
-                        {/* Proof Image Upload */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-1">
-                                📸 Captura de pantalla como prueba
-                            </label>
-                            <p className="text-xs text-gray-500 mb-2">
-                                Sube una captura donde se vea que estás logueado en esa cuenta (ej. pantalla de "Editar Perfil"). Máx. 5 MB.
+                            <ImageUploader
+                                label="📸 Captura de pantalla como prueba"
+                                folder="verification_proofs"
+                                previewUrl={proofUrl}
+                                onUploadSuccess={(url) => setProofUrl(url)}
+                            />
+                            <p className="text-xs text-gray-500 mt-2">
+                                Sube una captura donde se vea que estás logueado en esa cuenta (ej. pantalla de "Editar Perfil").
                             </p>
-                            <label className="flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-gray-700 rounded-xl cursor-pointer hover:border-[#00FFCC]/50 hover:bg-gray-800/40 transition-all overflow-hidden relative">
-                                {proofPreview ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img src={proofPreview} alt="Preview" className="absolute inset-0 w-full h-full object-contain p-1" />
-                                ) : (
-                                    <div className="flex flex-col items-center gap-2 text-gray-500">
-                                        <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                        <span className="text-sm font-medium">Haz clic para subir imagen</span>
-                                        <span className="text-xs">JPG, PNG, WEBP</span>
-                                    </div>
-                                )}
-                                <input
-                                    type="file"
-                                    required
-                                    accept="image/*"
-                                    className="hidden"
-                                    onChange={handleFileChange}
-                                />
-                            </label>
-                            {proofFile && (
-                                <p className="text-xs text-[#00FFCC] mt-1">✓ {proofFile.name}</p>
-                            )}
                         </div>
 
                         {/* Actions */}
                         <div className="flex gap-3 pt-2">
                             <button
                                 type="button"
-                                onClick={() => { setShowForm(false); setProofFile(null); setProofPreview(null); setSocialUrl(''); setCategory(''); }}
+                                onClick={() => { setShowForm(false); setProofUrl(null); setSocialUrl(''); setCategory(''); }}
                                 className="flex-1 py-3 rounded-xl border border-gray-700 text-gray-400 hover:bg-gray-800 transition-colors text-sm font-bold"
                             >
                                 Cancelar

@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import React from 'react';
+import { render } from '@react-email/render';
 import { Resend } from 'resend';
 import { WelcomeEmail } from '@/emails/WelcomeEmail';
 
@@ -13,14 +15,19 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Email is required' }, { status: 400 });
         }
 
-        // FASE 3/TAREA 2: Enviar correo de bienvenida con Resend
+        // FASE 3: Enviar correo de bienvenida con Resend
         if (process.env.RESEND_API_KEY) {
-            await resend.emails.send({
-                from: 'Nuxira <onboarding@resend.dev>',
-                to: email,
-                subject: '¡Bienvenido a tu nuevo multiverso digital! 🚀',
-                react: WelcomeEmail({ name: name || 'Creador' }) as any
-            });
+            try {
+                await resend.emails.send({
+                    from: 'Equipo Nuxira <hola@nuxira.me>',
+                    to: email,
+                    subject: '¡Bienvenido a tu nuevo multiverso digital! ',
+                    html: await render(WelcomeEmail({ name: name || 'Creador' }) as React.ReactElement)
+                });
+            } catch (resendErr) {
+                console.error('[WELCOME EMAIL API] Fallo al enviar con Resend:', resendErr);
+                // No devolvemos error 500 para no bloquear el onboarding del usuario si falla el email
+            }
         }
 
         console.log(`[EMAIL TRANSACTIONS API] 🚀 Correo de Bienvenida encolado para: ${name || 'Creador'} <${email}>`);

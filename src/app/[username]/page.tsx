@@ -27,15 +27,33 @@ export async function generateMetadata({ params }: { params: Promise<{ username:
   if (snapshot.empty) return { title: `No encontrado | ${APP_NAME}` };
 
   const creatorData = snapshot.docs[0].data();
-  const profile = creatorData.profile || creatorData;
+  // Root-level fields ALWAYS win over any legacy nested `profile` object.
+  const profile = { ...(creatorData.profile || {}), ...creatorData };
+
+  const title = `${profile.displayName || `@${username}`} | ${APP_NAME}`;
+  const description = profile.bio || `Mira el perfil de ${profile.displayName || username} en ${APP_NAME}.`;
+  const image = profile.avatarUrl || getSmartAvatar(profile.displayName, username);
+  const url = `${process.env.NEXT_PUBLIC_APP_URL || 'https://nuxira.me'}/${username}`;
 
   return {
-    title: `${profile.displayName || `@${username}`} | ${APP_NAME}`,
-    description: profile.bio || `Creador en ${APP_NAME}`,
+    title,
+    description,
     openGraph: {
-      title: `${profile.displayName || `@${username}`} | ${APP_NAME}`,
-      description: profile.bio || `Creador en ${APP_NAME}`,
-      images: [profile.avatarUrl || getSmartAvatar(profile.displayName, username)],
+      title,
+      description,
+      images: [image],
+      type: 'profile',
+      url,
+      siteName: APP_NAME,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [image],
+    },
+    alternates: {
+      canonical: url,
     }
   };
 }
@@ -248,16 +266,36 @@ export default async function CreatorProfile({ params }: { params: Promise<{ use
             }}
           >
             {profile.avatarUrl ? (
-              <Image src={profile.avatarUrl} alt={profile.displayName || username} fill sizes="96px" className="object-cover" priority />
+              <Image
+                src={profile.avatarUrl}
+                alt={profile.displayName || username}
+                fill
+                sizes="192px"
+                className="object-cover"
+                priority
+                unoptimized
+              />
             ) : (
-              <Image src={getSmartAvatar(profile.displayName, username)} alt={profile.displayName || username} fill sizes="96px" className="object-cover" priority />
+              <Image
+                src={getSmartAvatar(profile.displayName, username)}
+                alt={profile.displayName || username}
+                fill
+                sizes="192px"
+                className="object-cover"
+                priority
+                unoptimized
+              />
             )}
           </div>
 
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-bold leading-tight break-words text-left flex items-center flex-wrap text-current gap-2" style={{ fontFamily: 'inherit', color: isHeaderWhite ? '#FFFFFF' : 'inherit' }}>
-              <span className="break-words min-w-0">{profile.displayName || `@${username}`}</span>
-              {isVerified && <VerifiedBadge />}
+            <h1 className="text-2xl sm:text-3xl font-bold leading-tight break-words text-left flex items-center text-current gap-2 pr-10" style={{ fontFamily: 'inherit', color: isHeaderWhite ? '#FFFFFF' : 'inherit' }}>
+              <span className="truncate max-w-[220px] sm:max-w-[280px]">{profile.displayName || `@${username}`}</span>
+              {isVerified && (
+                <span className="flex-shrink-0 scale-90 -ml-1">
+                  <VerifiedBadge />
+                </span>
+              )}
             </h1>
             <p className="text-base sm:text-lg break-words text-left mt-1 text-current" style={{ fontFamily: 'inherit', color: isHeaderWhite ? '#FFFFFF' : 'inherit' }}>
               {profile.bio || `Creador en ${APP_NAME}`}

@@ -33,40 +33,21 @@ export interface CreatorProfile {
 }
 
 /**
- * Función heurística para detectar género por nombre y generar Avatar (Dicebear Avataaars)
+ * Función ultra-robusta y nítida para generar un Avatar (Versión SVG Initials)
+ * Se usa SVG para Initials porque garantiza máxima nitidez en cualquier pantalla.
  */
 export function getSmartAvatar(name: string, fallbackSeed: string): string {
-    const cleanName = (name || fallbackSeed).toLowerCase().trim().split(' ')[0].replace(/[^a-zñáéíóú]/g, '');
+    // Aseguramos que el seed no sea un objeto o undefined
+    const safeName = typeof name === 'string' ? name : '';
+    const safeFallback = typeof fallbackSeed === 'string' ? fallbackSeed : 'U';
+    const seed = encodeURIComponent((safeName || safeFallback || 'N').trim());
 
-    // Fallback absoluto
-    if (!cleanName) return `https://api.dicebear.com/7.x/initials/svg?seed=${fallbackSeed}`;
-
-    // Listas de excepciones en español/inglés comunes
-    const maleExceptions = ['luca', 'tomas', 'matias', 'elias', 'jose', 'luis', 'carlos', 'jesus', 'juan', 'andres', 'david', 'manuel', 'jorge'];
-    const femaleExceptions = ['carmen', 'beatriz', 'luz', 'paz', 'isabel', 'raquel', 'ester', 'ruth', 'noemi', 'miriam', 'sol', 'cruz'];
-
-    let isFemale = false;
-
-    if (femaleExceptions.includes(cleanName)) {
-        isFemale = true;
-    } else if (maleExceptions.includes(cleanName)) {
-        isFemale = false;
-    } else if (cleanName.endsWith('a') || cleanName.endsWith('z')) {
-        // En español, la gran mayoría de nombres terminados en 'a' son femeninos, y terminados en 'o' u otra consonante masculinos.
-        isFemale = true;
-    }
-
-    // Parámetros específicos de Dicebear para Avataaars v7 (rasgos femeninos o masculinos estéticamente agradables)
-    const genderParams = isFemale
-        ? "clothing=blazerAndSweater,collarAndSweater,graphicShirt,hoodie,overall,shirtScoopNeck,shirtVNeck&eyebrows=defaultNatural,flatNatural,raisedExcitedNatural,upDownNatural&eyes=default,happy,squint,wink&facialHairProbability=0&hair=bun,curly,curvy,dreads01,frida,longButNotTooLong,miaWallace,shaggy,straight01,straight02&mouth=default,smile,twinkle&skinColor=edb98a,fd9841,f8d25c,ffdbb4"
-        : "clothing=blazerAndShirt,blazerAndSweater,hoodie,shirtCrewNeck,shirtVNeck&eyebrows=default,defaultNatural,flatNatural,raisedExcited,upDownNatural&eyes=default,happy,squint,wink&facialHair=beardLight,beardMagestic,beardMedium,moustaceMagnum&facialHairProbability=20&hair=dreads,dreads01,dreads02,frizzle,shaggy,shortCurly,shortFlat,shortRound,shortWaved,sides,theCaesar&mouth=default,smile,twinkle&skinColor=edb98a,fd9841,f8d25c,ffdbb4";
-
-    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${fallbackSeed}&${genderParams}`;
+    // Estilo 'initials' en SVG: Nítido, ligero y compatible.
+    return `https://api.dicebear.com/7.x/initials/svg?seed=${seed}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf&chars=2`;
 }
 
 /**
  * Inicializa el perfil base de un creador en Firestore tras registrarse
- * Crea el único documento necesario en la colección `creators`.
  */
 export async function createInitialProfile(uid: string, email: string, username: string, authProvider: string = 'password', displayNameFallback?: string) {
     if (!uid || !email || !username) {
@@ -102,12 +83,12 @@ export async function createInitialProfile(uid: string, email: string, username:
 
         await setDoc(creatorRef, newProfile);
 
-        // TAREA 2: Trigger del correo de bienvenida por Resend
         try {
-            await fetch('/api/welcome', {
+            const origin = typeof window !== 'undefined' ? window.location.origin : '';
+            await fetch(`${origin}/api/welcome`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, name: username })
+                body: JSON.stringify({ email, name: finalDisplayName })
             });
         } catch (apiErr) {
             console.error("Error trigger welcome API:", apiErr);
@@ -131,8 +112,6 @@ export async function checkUsernameAvailability(username: string): Promise<boole
         const profilesRef = collection(db, 'creators');
         const q = query(profilesRef, where("username", "==", username.toLowerCase()));
         const snapshot = await getDocs(q);
-
-        // Si el snapshot está vacío, el username está disponible
         return snapshot.empty;
     } catch (error) {
         console.error("[Nuxira DB] Error checking username availability:", error);

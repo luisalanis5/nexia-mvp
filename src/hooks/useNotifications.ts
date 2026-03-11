@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase/client';
+import { onAuthStateChanged, User } from 'firebase/auth';
 import { collection, query, onSnapshot, orderBy, doc, writeBatch, Timestamp, updateDoc } from 'firebase/firestore';
 
 export type Notification = {
@@ -16,25 +17,43 @@ export const useNotifications = () => {
     const [unreadCount, setUnreadCount] = useState(0);
 
     useEffect(() => {
-        if (!auth.currentUser) return;
+        let unsubscribeSnap: (() => void) | null = null;
 
-        // Fase 4: Suscripción en Tiempo Real a Colección de Notificaciones
-        const notifsRef = collection(db, 'creators', auth.currentUser.uid, 'notifications');
-        const q = query(notifsRef, orderBy('createdAt', 'desc'));
+        const unsubscribeAuth = onAuthStateChanged(auth, (user: User | null) => {
+            // Limpiar suscripción anterior si existe
+            if (unsubscribeSnap) {
+                unsubscribeSnap();
+                unsubscribeSnap = null;
+            }
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const notifs = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            })) as Notification[];
+            if (!user) {
+                setNotifications([]);
+                setUnreadCount(0);
+                return;
+            }
 
-            setNotifications(notifs);
-            setUnreadCount(notifs.filter(n => !n.isRead).length);
-        }, (error) => {
-            console.error('[FIREBASE DEBUG] Fallo onSnapshot en useNotifications | Error:', error.message);
+            // Suscripción en Tiempo Real a Colección de Notificaciones del usuario actual
+            const notifsRef = collection(db, 'creators', user.uid, 'notifications');
+            const q = query(notifsRef);
+
+            unsubscribeSnap = onSnapshot(q, (snapshot) => {
+                const notifs = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                })) as Notification[];
+
+                setNotifications(notifs);
+                setUnreadCount(notifs.filter(n => !n.isRead).length);
+            }, (error) => {
+                console.error(`[FIREBASE DEBUG] Fallo onSnapshot en useNotifications | UID: ${user.uid} | Error: ${error.message}`);
+                // Si el error persiste, puede ser un problema de índices (createdAt) o reglas
+            });
         });
 
-        return () => unsubscribe();
+        return () => {
+            unsubscribeAuth();
+            if (unsubscribeSnap) unsubscribeSnap();
+        };
     }, []);
 
     const markAllAsRead = async () => {

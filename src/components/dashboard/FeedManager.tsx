@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { db, auth, storage } from '@/lib/firebase/client';
+import { db, auth } from '@/lib/firebase/client';
 import { collection, addDoc, query, onSnapshot, serverTimestamp, deleteDoc, doc, where, getDocs, updateDoc, writeBatch } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
+import ImageUploader from '@/components/dashboard/ImageUploader';
 
 export default function FeedManager({ feedModules, creatorId }: { feedModules: any[], creatorId: string }) {
     const [content, setContent] = useState('');
@@ -218,45 +218,14 @@ export default function FeedManager({ feedModules, creatorId }: { feedModules: a
                     onChange={e => setContent(e.target.value)}
                     className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-white transition-all resize-none"
                 />
-                <div className="flex flex-col md:flex-row gap-2">
-                    <input
-                        type="url"
-                        placeholder="URL de imagen adjunta (Opcional)"
-                        value={imageUrl}
-                        onChange={e => setImageUrl(e.target.value)}
-                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-white transition-all flex-1"
+                <div className="w-full">
+                    <ImageUploader
+                        label="Imagen adjunta (Opcional)"
+                        folder="feed"
+                        previewUrl={imageUrl}
+                        onUploadSuccess={(url) => setImageUrl(url)}
                     />
-                    <label className="flex items-center justify-center gap-2 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm cursor-pointer hover:bg-gray-700 transition-all text-white font-bold h-full md:w-auto w-full">
-                        <span>📤 Subir Foto</span>
-                        <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={async (e) => {
-                                const file = e.target.files?.[0];
-                                if (!file || !auth.currentUser) return;
-                                if (file.size > 2 * 1024 * 1024) { toast.error('La imagen no puede superar 2MB'); return; }
-                                setIsPublishing(true);
-                                try {
-                                    const storageRef = ref(storage, `creators/${auth.currentUser.uid}/feed/${Date.now()}.jpg`);
-                                    await uploadBytes(storageRef, file);
-                                    const url = await getDownloadURL(storageRef);
-                                    setImageUrl(url);
-                                    toast.success('Imagen subida con éxito');
-                                } catch (err: any) {
-                                    console.error('[FEED UPLOAD ERROR]', err);
-                                    toast.error(`Error al subir imagen: ${err?.code || err?.message || 'desconocido'}`);
-                                } finally {
-                                    setIsPublishing(false);
-                                    e.target.value = '';
-                                }
-                            }}
-                        />
-                    </label>
                 </div>
-                <p className="text-gray-400 text-[11px] mt-2 ml-1">
-                    Pega una URL o sube directamente tu foto (máx 2MB).
-                </p>
 
                 <div className="flex flex-col md:flex-row justify-between items-center pt-2 gap-4">
                     <p className="text-gray-500 text-[11px] ml-1 order-2 md:order-1">

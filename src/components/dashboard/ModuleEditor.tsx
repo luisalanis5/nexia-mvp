@@ -6,6 +6,7 @@ import { doc, updateDoc, setDoc, arrayUnion, arrayRemove, collection, query, whe
 import { isKnownEmbedUrl } from '@/components/public/MediaEmbed';
 import toast from 'react-hot-toast';
 import { APP_NAME } from '@/config/brand';
+import ImageUploader from './ImageUploader';
 
 type ModuleItem = {
   id: string;
@@ -417,12 +418,12 @@ export default function ModuleEditor({ modules, isPremium, stripeSetupComplete, 
                       />
                       {!isKnownEmbedUrl(videoUrl) ? (
                         <div className="col-span-1 md:col-span-2 space-y-1">
-                          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Portada (Opcional)</p>
-                          <input
-                            type="url" placeholder="URL de imagen de portada (Imgur, etc.)" value={thumbnailUrl} onChange={e => setThumbnailUrl(e.target.value)}
-                            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#FF0055] outline-none text-white transition-all"
+                          <ImageUploader
+                            label="Portada del Video"
+                            folder="thumbnails"
+                            previewUrl={thumbnailUrl}
+                            onUploadSuccess={(url) => setThumbnailUrl(url)}
                           />
-                          <p className="text-gray-500 text-[11px] ml-1">Sube tu imagen a <a href="https://imgur.com/upload" target="_blank" className="text-[#FF0055] hover:underline">Imgur.com</a> y pega el enlace directo aquí.</p>
                         </div>
                       ) : (
                         <p className="w-full text-xs font-bold text-[#00FFCC] bg-[#00FFCC]/10 p-3 rounded-xl border border-[#00FFCC]/20 text-center col-span-1 md:col-span-2">
@@ -450,12 +451,12 @@ export default function ModuleEditor({ modules, isPremium, stripeSetupComplete, 
                         className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#7B61FF] outline-none text-white transition-all"
                       />
                       <div className="col-span-1 md:col-span-2 space-y-1">
-                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Imagen del Anuncio (URL)</p>
-                        <input
-                          type="url" placeholder="URL de imagen (Imgur, Cloudinary, etc.)" value={adImage} onChange={e => setAdImage(e.target.value)}
-                          className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#7B61FF] outline-none text-white transition-all"
+                        <ImageUploader
+                          label="Imagen del Anuncio"
+                          folder="ads"
+                          previewUrl={adImage}
+                          onUploadSuccess={(url) => setAdImage(url)}
                         />
-                        <p className="text-gray-500 text-[11px] ml-1">Sube tu imagen a <a href="https://imgur.com/upload" target="_blank" className="text-[#7B61FF] hover:underline">Imgur.com</a> y pega el enlace directo.</p>
                       </div>
                     </>
                   )}
@@ -493,46 +494,31 @@ export default function ModuleEditor({ modules, isPremium, stripeSetupComplete, 
                         className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-orange-500 outline-none text-white transition-all"
                       />
 
-                      {/* Info BYOS */}
-                      <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-3 flex items-start gap-2">
-                        <span className="text-lg">📸</span>
-                        <div>
-                          <p className="text-orange-300 font-bold text-xs">¿Cómo agregar fotos?</p>
-                          <p className="text-gray-400 text-[11px] leading-relaxed mt-0.5">Sube tus fotos gratis a <a href="https://imgur.com/upload" target="_blank" className="text-orange-400 hover:underline font-bold">Imgur.com</a> o <a href="https://postimages.org" target="_blank" className="text-orange-400 hover:underline font-bold">PostImages.org</a> y pega los enlaces directos (.jpg/.png) abajo.</p>
-                        </div>
-                      </div>
-
-                      {/* Campos URL para cada imagen */}
-                      {galleryUrls.map((imgUrl, idx) => (
-                        <div key={idx} className="flex gap-2 items-center">
-                          <input
-                            type="url"
-                            placeholder={`URL imagen ${idx + 1} (https://i.imgur.com/...)`}
-                            value={imgUrl}
-                            onChange={e => {
-                              const updated = [...galleryUrls];
-                              updated[idx] = e.target.value;
-                              setGalleryUrls(updated);
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {galleryUrls.map((url, idx) => (
+                          <ImageUploader
+                            key={idx}
+                            label={`Imagen ${idx + 1}`}
+                            folder="gallery"
+                            previewUrl={url}
+                            onUploadSuccess={(newUrl) => {
+                              const newUrls = [...galleryUrls];
+                              newUrls[idx] = newUrl;
+                              setGalleryUrls(newUrls);
                             }}
-                            className="flex-1 bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-orange-500 outline-none text-white transition-all"
                           />
-                          {galleryUrls.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => setGalleryUrls(galleryUrls.filter((_: string, i: number) => i !== idx))}
-                              className="w-9 h-9 flex items-center justify-center text-red-400 bg-red-500/10 rounded-xl hover:bg-red-500/20 text-sm font-bold flex-shrink-0"
-                            >✕</button>
-                          )}
-                        </div>
-                      ))}
-
-                      {galleryUrls.length < 10 && (
-                        <button
-                          type="button"
-                          onClick={() => setGalleryUrls([...galleryUrls, ''])}
-                          className="w-full py-2.5 rounded-xl border border-dashed border-orange-500/40 text-orange-400 text-sm font-bold hover:bg-orange-500/10 transition-all"
-                        >+ Añadir otra imagen</button>
-                      )}
+                        ))}
+                        {galleryUrls.length < 6 && (
+                          <button
+                            type="button"
+                            onClick={() => setGalleryUrls([...galleryUrls, ''])}
+                            className="aspect-square border-2 border-dashed border-gray-800 rounded-2xl flex flex-col items-center justify-center gap-2 hover:border-orange-500/50 transition-all bg-gray-900/20"
+                          >
+                            <span className="text-2xl text-orange-500">+</span>
+                            <span className="text-[10px] font-bold text-gray-500 uppercase">Añadir</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )}
 
@@ -625,55 +611,50 @@ export default function ModuleEditor({ modules, isPremium, stripeSetupComplete, 
                           </div>
 
                           {/* Preview Difuminada con Base64 */}
-                          <div className="col-span-1 md:col-span-2 space-y-2">
-                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Portada de Vista Previa (Difuminada)</p>
-                            {lockedPreviewUrl ? (
-                              <div className="flex items-center gap-3 bg-gray-800/60 p-3 rounded-xl border border-gray-700">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={lockedPreviewUrl} alt="preview" className="w-14 h-14 object-cover rounded-lg flex-shrink-0" />
-                                <span className="text-xs text-gray-400 flex-1 truncate">Portada cargada ✓</span>
-                                <button type="button" onClick={() => setLockedPreviewUrl('')} className="text-red-400 text-xs px-2 py-1 rounded-lg bg-red-500/10">✕</button>
-                              </div>
-                            ) : (
-                              <input
-                                type="url" placeholder="URL de portada difuminada (https://i.imgur.com/...)" value={lockedPreviewUrl} onChange={e => setLockedPreviewUrl(e.target.value)}
-                                className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none text-white transition-all"
-                              />
-                            )}
-                          </div>
-
-                          {/* Contenido Secreto */}
-                          <div className="col-span-1 md:col-span-2 space-y-2">
-                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Contenido Que Verán Después de Pagar</p>
-                            <input
-                              type="url" placeholder="YouTube, Vimeo, Google Drive, Dropbox, o cualquier URL..." required value={secretContent} onChange={e => setSecretContent(e.target.value)}
-                              className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none text-white transition-all"
+                          <div className="col-span-1 md:col-span-2">
+                            <ImageUploader
+                              label="Vista Previa (Imagen pública)"
+                              folder="locked_previews"
+                              previewUrl={lockedPreviewUrl}
+                              onUploadSuccess={(url) => setLockedPreviewUrl(url)}
                             />
-                            <div className="grid grid-cols-3 gap-2 mt-1">
-                              {[
-                                { icon: '▶️', label: 'YouTube / Vimeo', hint: 'El video se muestra directo' },
-                                { icon: '📁', label: 'Google Drive / Dropbox', hint: 'Activa enlace público antes' },
-                                { icon: '🔗', label: 'Cualquier URL', hint: 'Grupos privados, Notion, etc.' },
-                              ].map((tip, i) => (
-                                <div key={i} className="text-center p-2 bg-gray-900/60 rounded-lg border border-gray-800">
-                                  <p className="text-sm">{tip.icon}</p>
-                                  <p className="text-[10px] font-bold text-gray-400">{tip.label}</p>
-                                  <p className="text-[9px] text-gray-600">{tip.hint}</p>
-                                </div>
-                              ))}
-                            </div>
                           </div>
 
-                          {/* Método de pago */}
-                          <div className="col-span-1 md:col-span-2 bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 flex items-start gap-3">
-                            <span className="text-lg">💳</span>
-                            <div>
-                              <p className="text-blue-300 font-bold text-xs mb-0.5">Método de Pago: Stripe</p>
-                              <p className="text-gray-400 text-[11px] leading-relaxed">El cobro se procesa via Stripe. Tus fans pueden pagar con tarjeta de crédito, débito o Apple/Google Pay. Los fondos llegan a tu cuenta en 2-5 días hábiles.</p>
-                            </div>
+                          <div className="col-span-1 md:col-span-2 space-y-1">
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest pl-1">🚀 Contenido Secreto (Lo que vendes)</p>
+                            {/* Para el contenido secreto, como puede ser texto o link, lo dejamos como input por ahora,
+                              pero si quiere subir una imagen secreta, el uploader también serviría.
+                              Por ahora mantenemos el textarea para flexibilidad total (links, códigos, etc.) */}
+                            <textarea
+                              placeholder="Escribe aquí el contenido secreto o pega el enlace privado (Drive, Dropbox, etc.) que el usuario recibirá al pagar."
+                              required value={secretContent} onChange={e => setSecretContent(e.target.value)}
+                              className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-green-500 outline-none text-white transition-all min-h-[100px]"
+                            />
+                          </div>
+                          <div className="col-span-1 md:col-span-2 grid grid-cols-3 gap-2 mt-1">
+                            {[
+                              { icon: '▶️', label: 'YouTube / Vimeo', hint: 'El video se muestra directo' },
+                              { icon: '📁', label: 'Google Drive / Dropbox', hint: 'Activa enlace público antes' },
+                              { icon: '🔗', label: 'Cualquier URL', hint: 'Grupos privados, Notion, etc.' },
+                            ].map((tip, i) => (
+                              <div key={i} className="text-center p-2 bg-gray-900/60 rounded-lg border border-gray-800">
+                                <p className="text-sm">{tip.icon}</p>
+                                <p className="text-[10px] font-bold text-gray-400">{tip.label}</p>
+                                <p className="text-[9px] text-gray-600">{tip.hint}</p>
+                              </div>
+                            ))}
                           </div>
                         </>
                       )}
+
+                      {/* Método de pago */}
+                      <div className="col-span-1 md:col-span-2 bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 flex items-start gap-3">
+                        <span className="text-lg">💳</span>
+                        <div>
+                          <p className="text-blue-300 font-bold text-xs mb-0.5">Método de Pago: Stripe</p>
+                          <p className="text-gray-400 text-[11px] leading-relaxed">El cobro se procesa via Stripe. Tus fans pueden pagar con tarjeta de crédito, débito o Apple/Google Pay. Los fondos llegan a tu cuenta en 2-5 días hábiles.</p>
+                        </div>
+                      </div>
                     </>
                   )}
 
@@ -700,7 +681,7 @@ export default function ModuleEditor({ modules, isPremium, stripeSetupComplete, 
               </button>
             </div>
 
-          </div>
+          </div >
         );
 
         return (
@@ -728,7 +709,7 @@ export default function ModuleEditor({ modules, isPremium, stripeSetupComplete, 
                         </div>
                         <div className="flex flex-col flex-1 min-w-0 mr-4">
                           <div className="flex items-center gap-2 mb-2 flex-wrap shrink-0">
-                            <span className="text-[10px] uppercase font-black tracking-wider px-2.5 py-1 rounded-md border shrink-0 bg-[#00FFCC]/10 text-[#00FFCC] border-[#00FFCC]/20">links</span>
+                            <span className="text-[10px] uppercase font-black tracking-wider px-2.5 py-1 rounded-md border shrink-0 bg-[#00FFCC]/10 text-[#00FFCC] border-[#00FFCC]/20">enlaces</span>
                             <span className="flex items-center gap-1.5 bg-white/5 text-gray-300 text-[10px] uppercase font-bold px-2 py-1 rounded-md border border-white/10 shrink-0"><span>👁️</span> {mod.clicks || 0} Clics</span>
                             {mod.active === false && <span className="bg-red-500/20 text-red-500 text-[10px] uppercase font-bold px-2 py-1 rounded border border-red-500/30 shrink-0">Oculto</span>}
                           </div>
@@ -762,7 +743,9 @@ export default function ModuleEditor({ modules, isPremium, stripeSetupComplete, 
                         </div>
                         <div className="flex flex-col flex-1 min-w-0 mr-4">
                           <div className="flex items-center gap-2 mb-2 flex-wrap shrink-0">
-                            <span className={`text-[10px] uppercase font-black tracking-wider px-2.5 py-1 rounded-md border shrink-0 ${mod.type === 'media' ? 'bg-[#FF0055]/10 text-[#FF0055] border-[#FF0055]/20' : mod.type === 'locked' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-[#7B61FF]/10 text-[#7B61FF] border-[#7B61FF]/20'}`}>{mod.type}</span>
+                            <span className={`text-[10px] uppercase font-black tracking-wider px-2.5 py-1 rounded-md border shrink-0 ${mod.type === 'media' ? 'bg-[#FF0055]/10 text-[#FF0055] border-[#FF0055]/20' : mod.type === 'locked' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-[#7B61FF]/10 text-[#7B61FF] border-[#7B61FF]/20'}`}>
+                              {mod.type === 'media' ? 'Video/Live' : mod.type === 'locked' ? 'Paywall' : mod.type === 'nativeAd' ? 'Anuncio' : mod.type === 'poll' ? 'Encuesta' : mod.type === 'gallery' ? 'Galería' : mod.type === 'feed' ? 'Novedades' : mod.type}
+                            </span>
                             <span className="flex items-center gap-1.5 bg-white/5 text-gray-300 text-[10px] uppercase font-bold px-2 py-1 rounded-md border border-white/10 shrink-0"><span>👁️</span> {mod.clicks || 0} Clics</span>
                             {mod.active === false && <span className="bg-red-500/20 text-red-500 text-[10px] uppercase font-bold px-2 py-1 rounded border border-red-500/30 shrink-0">Oculto</span>}
                           </div>

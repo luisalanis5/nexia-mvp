@@ -77,15 +77,8 @@ export default function RegisterPage() {
         setErrorMsg('');
 
         try {
-            // Fase Smart Login: Verificar si ya existe en DB Creators
-            const creatorsRef = collection(db, 'creators');
-            const q = query(creatorsRef, where('email', '==', email.toLowerCase()));
-            const snap = await getDocs(q);
-
-            if (!snap.empty) {
-                setIsLoading(false);
-                return toast.error("Este correo ya está registrado en Nuxira. ¡Por favor, inicia sesión!");
-            }
+            // ELIMINADO: El chequeo manual de Firestore aquí bloqueaba a usuarios con datos huérfanos.
+            // Ahora confiamos en Firebase Auth para validar si el email está en uso realmente.
 
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;

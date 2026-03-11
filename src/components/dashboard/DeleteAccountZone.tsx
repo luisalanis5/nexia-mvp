@@ -3,14 +3,15 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth, db } from '@/lib/firebase/client';
+import toast from 'react-hot-toast';
 import {
     deleteUser,
     EmailAuthProvider,
     reauthenticateWithCredential,
+    reauthenticateWithPopup,
     FacebookAuthProvider,
     GoogleAuthProvider,
-    OAuthProvider,
-    signInWithPopup
+    OAuthProvider
 } from 'firebase/auth';
 import { doc, deleteDoc, collection, getDocs } from 'firebase/firestore';
 
@@ -43,12 +44,12 @@ export default function DeleteAccountZone() {
         setError(null);
 
         try {
-            // Reauthentication logic
+            // Lógica de Re-autenticación (Requerida por Firebase para acciones sensibles)
             if (!isOAuth) {
                 const credential = EmailAuthProvider.credential(user.email!, currentPassword);
                 await reauthenticateWithCredential(user, credential);
             } else {
-                // Find primary OAuth provider
+                // Encontrar proveedor OAuth principal
                 const activeProvider = user.providerData.find(p => p.providerId !== 'password')?.providerId;
                 let provider;
 
@@ -66,38 +67,77 @@ export default function DeleteAccountZone() {
                         provider = new FacebookAuthProvider();
                         break;
                     default:
-                        throw new Error(`Proveedor de autenticación no soportado: ${activeProvider}`);
+                        throw new Error(`Proveedor no soportado para re-autenticación: ${activeProvider}`);
                 }
 
-                // Pop-up reauth to refresh token
-                await signInWithPopup(auth, provider);
+                // Usamos reauthenticateWithPopup que es el método correcto para refrescar la sesión OAuth
+                await reauthenticateWithPopup(user, provider);
             }
 
             // 1. Eliminar documentos del usuario y subcolecciones en Firestore
             const userRef = doc(db, 'creators', user.uid);
+            const verificationRef = doc(db, 'verification_requests', user.uid);
+
+            const cleanupSubcollection = async (collectionName: string) => {
+                try {
+                    const snap = await getDocs(collection(userRef, collectionName));
+                    const promises = snap.docs.map(d => deleteDoc(d.ref));
+                    await Promise.all(promises);
+                    console.log(`[Cleanup] Deleted ${collectionName} for:`, user.uid);
+                } catch (e) {
+                    console.warn(`Error cleaning up ${collectionName}:`, e);
+                }
+            };
 
             try {
-                const notificationsSnapshot = await getDocs(collection(userRef, 'notifications'));
-                const deletePromises = notificationsSnapshot.docs.map(nDoc => deleteDoc(nDoc.ref));
-                await Promise.all(deletePromises);
+                // Borrado en paralelo de subcolecciones y documentos vinculados
+                await Promise.all([
+                    deleteDoc(verificationRef).catch(e => console.warn("Error deleting verification request:", e)),
+                    cleanupSubcollection('notifications'),
+                    cleanupSubcollection('modules'),
+                    cleanupSubcollection('feed_posts'),
+                    cleanupSubcollection('analytics_events'),
+                    cleanupSubcollection('unlocked_modules')
+                ]);
 
+                // Eliminar documento principal del creador AL FINAL
+                // Esto es lo que libera el nombre de usuario
                 await deleteDoc(userRef);
+
+                console.log("[Cleanup] Total Firestore data removed successfully for:", user.uid);
             } catch (firestoreError) {
-                console.warn('Error deleting Firestore documents, continuing with auth deletion', firestoreError);
+                console.error('Critical error during Firestore cleanup:', firestoreError);
+                // No detenemos el proceso, intentamos borrar Auth para no dejar sesión zombi
             }
 
-            // 2. Delete user from Firebase Auth
+            // 2. Eliminar usuario de Firebase Auth
             await deleteUser(user);
 
-            // 3. Cleanup local state and redirect
-            // You might also need to clear cookies if you are using session cookies
+            // 3. Limpiar y redirigir
+            toast.success("Tu cuenta ha sido eliminada permanentemente.");
             router.push('/');
 
         } catch (err: any) {
-            console.error('Error al eliminar la cuenta:', err);
-            // Firebase throws 'auth/requires-recent-login' if the session is too old for sensitive actions
+            const handledErrors = [
+                'auth/requires-recent-login',
+                'auth/wrong-password',
+                'auth/invalid-credential',
+                'auth/user-mismatch',
+                'auth/popup-closed-by-user'
+            ];
+
+            if (!handledErrors.includes(err.code)) {
+                console.error('Error al eliminar la cuenta:', err);
+            }
+
             if (err.code === 'auth/requires-recent-login') {
-                setError('Por seguridad, debes cerrar sesión y volver a entrar antes de eliminar tu cuenta.');
+                setError('Por seguridad, la sesión debe ser reciente. Por favor, cierra sesión y vuelve a entrar.');
+            } else if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+                setError('La contraseña o las credenciales no son válidas. Intenta de nuevo.');
+            } else if (err.code === 'auth/user-mismatch') {
+                setError('La cuenta que seleccionaste no coincide con tu sesión actual.');
+            } else if (err.code === 'auth/popup-closed-by-user') {
+                setError('Confirmación cancelada. Debes completar la autenticación.');
             } else {
                 setError(err.message || 'Ha ocurrido un error al intentar eliminar la cuenta.');
             }
@@ -107,7 +147,7 @@ export default function DeleteAccountZone() {
 
     return (
         <div className="mt-12">
-            <h3 className="text-xl font-medium text-white mb-4">Danger Zone</h3>
+            <h3 className="text-xl font-medium text-white mb-4">Zona de Peligro</h3>
 
             <div className="border border-red-500/30 bg-red-500/5 rounded-2xl p-6 sm:p-8">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
@@ -172,7 +212,7 @@ export default function DeleteAccountZone() {
                                 id="confirm-delete"
                                 type="text"
                                 value={confirmText}
-                                onChange={(e) => setConfirmText(e.target.value)}
+                                onChange={(e) => setConfirmText(e.target.value.toUpperCase())}
                                 autoComplete="off"
                                 disabled={isDeleting}
                                 className="w-full bg-[#050505] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all font-mono uppercase"

@@ -10,6 +10,7 @@ import { getSmartAvatar } from '@/lib/firebase/profileUtils';
 import Image from 'next/image';
 import { APP_NAME, APP_DOMAIN } from '@/config/brand';
 import ModuleEditor from '@/components/dashboard/ModuleEditor';
+import ImageUploader from '@/components/dashboard/ImageUploader';
 import RenderEngine from '@/components/public/RenderEngine';
 import LinksList from '@/components/public/LinksList';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -52,7 +53,7 @@ export default function CreatorDashboard() {
     const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
-    const [isUploadingPic, setIsUploadingPic] = useState(false);
+    const [isPremium, setIsPremium] = useState(false);
     const [isEmailVerified, setIsEmailVerified] = useState(true);
     const [verificationSent, setVerificationSent] = useState(false);
 
@@ -125,7 +126,19 @@ export default function CreatorDashboard() {
                 const docSnap = await getDoc(docRef);
 
                 if (docSnap.exists()) {
-                    const data = docSnap.data() as CreatorProfile;
+                    let data = docSnap.data() as CreatorProfile;
+
+                    // AUTO-REPARACIÓN DE AVATARES:
+                    // Si la URL es de Dicebear y es del formato antiguo (o PNG borroso), la actualizamos proactivamente.
+                    if (data.avatarUrl?.includes('dicebear.com')) {
+                        const newSmartUrl = getSmartAvatar(data.displayName || data.username, data.username);
+                        if (data.avatarUrl !== newSmartUrl) {
+                            data.avatarUrl = newSmartUrl;
+                            // Persistir la corrección silenciosamente
+                            updateDoc(docRef, { avatarUrl: newSmartUrl }).catch(e => console.error("Error auto-fixing avatar:", e));
+                        }
+                    }
+
                     setCreatorData(data);
 
                     // Inicializar los estados con los datos reales
@@ -189,54 +202,16 @@ export default function CreatorDashboard() {
         }
     };
 
-    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file || !auth.currentUser) return;
-
-        setIsUploadingPic(true);
+    const handleAvatarSuccess = async (url: string) => {
+        if (!auth.currentUser) return;
         try {
-            // 1. Comprimir con canvas (máx 500px, calidad 0.80) antes de subir
-            const compressedBlob = await new Promise<Blob>((resolve, reject) => {
-                const img = new window.Image();
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    img.src = ev.target?.result as string;
-                    img.onload = () => {
-                        const MAX = 500;
-                        const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
-                        const canvas = document.createElement('canvas');
-                        canvas.width = Math.round(img.width * ratio);
-                        canvas.height = Math.round(img.height * ratio);
-                        const ctx = canvas.getContext('2d')!;
-                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                        canvas.toBlob(b => b ? resolve(b) : reject(new Error('canvas fail')), 'image/jpeg', 0.80);
-                    };
-                    img.onerror = reject;
-                };
-                reader.onerror = reject;
-                reader.readAsDataURL(file);
-            });
-
-            // 2. Subir a Firebase Storage
-            const storageRef = ref(storage, `creators/${auth.currentUser.uid}/avatar.jpg`);
-            await uploadBytes(storageRef, compressedBlob, { contentType: 'image/jpeg' });
-            const downloadUrl = await getDownloadURL(storageRef);
-
-            // 3. Guardar URL (no Base64) en Firestore
             const docRef = doc(db, 'creators', auth.currentUser.uid);
-            await updateDoc(docRef, { 'avatarUrl': downloadUrl });
-
-            // 4. Actualizar UI
-            setCreatorData((prev: any) => prev ? {
-                ...prev,
-                avatarUrl: downloadUrl
-            } : null);
+            await updateDoc(docRef, { avatarUrl: url });
+            setCreatorData((prev: any) => prev ? { ...prev, avatarUrl: url } : null);
+            toast.success("Foto de perfil actualizada");
         } catch (err) {
-            console.error('[AVATAR UPLOAD ERROR]', err);
-            toast.error('Error al subir la foto. Verifica las Storage Rules de Firebase.');
-        } finally {
-            setIsUploadingPic(false);
-            e.target.value = '';
+            console.error('[AVATAR UPDATE ERROR]', err);
+            toast.error("Error al actualizar la foto de perfil en la base de datos.");
         }
     };
 
@@ -440,7 +415,7 @@ export default function CreatorDashboard() {
                                 </span>
                             </h1>
                             <p className="text-gray-400 mt-2 flex items-center justify-center md:justify-start gap-3">
-                                <span>Plan actual: <span className="uppercase font-extrabold tracking-wider transition-colors duration-300" style={{ color: primaryColor }}>{creatorData.isPremium ? 'PRO ⭐' : 'Free'}</span></span>
+                                <span>Plan actual: <span className="uppercase font-extrabold tracking-wider transition-colors duration-300" style={{ color: primaryColor }}>{creatorData.isPremium ? 'PRO ⭐' : 'Gratis'}</span></span>
                             </p>
                         </div>
 
@@ -502,34 +477,17 @@ export default function CreatorDashboard() {
                                 <motion.div key="overview" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} transition={{ duration: 0.2 }} className="space-y-8">
                                     {/* Perfil Summary */}
                                     <div className="p-6 bg-gray-900 border border-gray-800 rounded-3xl flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-6 shadow-xl">
-                                        <div className="relative group cursor-pointer flex-shrink-0 w-28 h-28" onClick={() => document.getElementById('avatar-upload')?.click()}>
-                                            <div className="absolute -inset-1 rounded-full blur-sm opacity-50 transition-colors duration-300 group-hover:opacity-80" style={{ backgroundColor: primaryColor }}></div>
-                                            <img
-                                                src={creatorData.avatarUrl || getSmartAvatar(creatorData.displayName || creatorData.username, creatorData.username)}
-                                                alt="Avatar"
-                                                className={`relative z-10 w-full h-full rounded-full border-4 object-cover aspect-square ${isUploadingPic ? 'opacity-50' : ''}`}
-                                                style={{ borderColor: primaryColor }}
-                                            />
-                                            {isUploadingPic && (
-                                                <div className="absolute inset-0 flex items-center justify-center z-20">
-                                                    <div className="w-8 h-8 rounded-full border-4 border-t-white animate-spin border-gray-700"></div>
-                                                </div>
-                                            )}
-                                            {!isUploadingPic && (
-                                                <div className="absolute inset-0 flex items-center justify-center z-20 opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 rounded-full">
-                                                    <span className="text-white text-xs font-bold bg-black/60 px-2 py-1 rounded">Cambiar</span>
-                                                </div>
-                                            )}
-                                            <input
-                                                id="avatar-upload"
-                                                type="file"
-                                                accept="image/*"
-                                                className="hidden"
-                                                onChange={handleAvatarUpload}
+                                        <div className="flex-shrink-0 w-32">
+                                            <ImageUploader
+                                                label="Foto de Perfil"
+                                                folder="avatars"
+                                                previewUrl={creatorData.avatarUrl || getSmartAvatar(creatorData.displayName || creatorData.username, creatorData.username)}
+                                                onUploadSuccess={handleAvatarSuccess}
+                                                className="!space-y-0"
                                             />
                                         </div>
 
-                                        <div className="flex-1 min-w-0 w-full flex flex-col items-center md:items-start">
+                                        <div className="flex-1 min-w-0 w-full flex flex-col items-center md:items-start pt-4">
                                             <h2 className="font-bold text-xl break-words w-full">{displayName || creatorData.displayName}</h2>
                                             <p className="text-sm text-gray-500 mb-6 break-words w-full">{APP_DOMAIN}/{creatorData.username}</p>
 
@@ -542,6 +500,40 @@ export default function CreatorDashboard() {
                                                 Ver Perfil Público ↗
                                             </a>
                                         </div>
+                                    </div>
+
+                                    {/* SECCIÓN INFORMACIÓN PERSONAL (MOVIDA A INICIO) */}
+                                    <div className="bg-gray-900/40 backdrop-blur-md border border-gray-800 rounded-3xl p-6 shadow-2xl">
+                                        <h3 className="text-xl font-bold mb-6 text-white tracking-tight">Inicio</h3>
+                                        <form onSubmit={handleSaveProfile} className="space-y-6">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-400 mb-2">Nombre Público</label>
+                                                <input
+                                                    type="text"
+                                                    value={displayName}
+                                                    onChange={(e) => setDisplayName(e.target.value)}
+                                                    className="w-full bg-gray-800/30 border border-gray-700/50 rounded-2xl px-5 py-4 focus:ring-1 outline-none text-white transition-all text-sm"
+                                                    style={{ '--tw-ring-color': primaryColor } as any}
+                                                    required
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-400 mb-2">Breve Biografía</label>
+                                                <textarea
+                                                    rows={3}
+                                                    value={bio}
+                                                    onChange={(e) => setBio(e.target.value)}
+                                                    className="w-full bg-gray-800/30 border border-gray-700/50 rounded-2xl px-5 py-4 focus:ring-1 outline-none text-white resize-none transition-all text-sm"
+                                                    style={{ '--tw-ring-color': primaryColor } as any}
+                                                    placeholder="Cuéntale al mundo quién eres..."
+                                                />
+                                            </div>
+                                            <div className="flex justify-end pt-2">
+                                                <button type="submit" disabled={isSaving} className="px-6 py-2.5 bg-gray-800 hover:bg-gray-700 text-white text-xs font-bold rounded-xl border border-gray-700 transition-all">
+                                                    {isSaving ? 'Guardando...' : 'Actualizar Información'}
+                                                </button>
+                                            </div>
+                                        </form>
                                     </div>
 
                                     {/* ANALYTICS VISUALES AQUI */}
@@ -681,11 +673,11 @@ export default function CreatorDashboard() {
                                                         onChange={(e) => setActiveSkin(e.target.value)}
                                                         className="w-full bg-gray-800/50 border border-gray-700/50 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all"
                                                     >
-                                                        <option value="default">Default (Cristal)</option>
+                                                        <option value="default">Por defecto (Cristal)</option>
                                                         <option value="gotham">Gotham (Oscuro/Neón)</option>
                                                         <option value="burton">Burton (Dibujado)</option>
-                                                        <option value="minimalist">Minimalist (Limpio)</option>
-                                                        <option value="neumorphism">Neumorphism (3D Suave)</option>
+                                                        <option value="minimalist">Minimalista (Limpio)</option>
+                                                        <option value="neumorphism">Neumorfismo (3D Suave)</option>
                                                         <option value="royal_midnight">Royal Midnight (👑 Deluxe)</option>
                                                         <option value="organic_zen">Organic Zen (🍃 Natural)</option>
                                                         <option value="neon_cyberpunk">Neon Cyberpunk (⚡ High-Contrast)</option>
@@ -696,62 +688,12 @@ export default function CreatorDashboard() {
 
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-2">
                                                 <div className="space-y-2">
-                                                    <label className="block text-sm font-medium text-gray-400">🖼️ Fondo Personalizado</label>
-                                                    {videoBgUrl ? (
-                                                        <div className="flex items-center gap-2 bg-gray-800/60 p-2 rounded-xl border border-gray-700">
-                                                            <img src={videoBgUrl} className="w-8 h-8 rounded object-cover" />
-                                                            <span className="text-xs text-green-400 flex-1 truncate font-bold italic">Imagen de Fondo Activa ✓</span>
-                                                            <button type="button" onClick={() => setVideoBgUrl('')} className="text-red-400 p-1 hover:bg-red-500/10 rounded-lg">✕</button>
-                                                        </div>
-                                                    ) : (
-                                                        <label className="flex items-center justify-center gap-2 bg-gray-800/30 border border-dashed border-gray-700 rounded-xl h-[52px] cursor-pointer hover:border-blue-500/50 hover:bg-gray-800 transition-all text-gray-400">
-                                                            <span className="text-lg">📤</span>
-                                                            <span className="text-xs font-bold uppercase tracking-wider">Subir Imagen</span>
-                                                            <input
-                                                                type="file"
-                                                                accept="image/*"
-                                                                className="hidden"
-                                                                onChange={async (e) => {
-                                                                    const file = e.target.files?.[0];
-                                                                    if (!file || !auth.currentUser) return;
-                                                                    setIsSaving(true);
-                                                                    try {
-                                                                        // Comprimir con canvas 
-                                                                        const compressedBlob = await new Promise<Blob>((resolve, reject) => {
-                                                                            const img = new window.Image();
-                                                                            const reader = new FileReader();
-                                                                            reader.onload = (ev) => {
-                                                                                img.src = ev.target?.result as string;
-                                                                                img.onload = () => {
-                                                                                    const MAX = 1920;
-                                                                                    const ratio = Math.min(MAX / img.width, MAX / img.height, 1);
-                                                                                    const canvas = document.createElement('canvas');
-                                                                                    canvas.width = Math.round(img.width * ratio);
-                                                                                    canvas.height = Math.round(img.height * ratio);
-                                                                                    const ctx = canvas.getContext('2d')!;
-                                                                                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                                                                                    canvas.toBlob(b => b ? resolve(b) : reject(new Error('canvas fail')), 'image/jpeg', 0.80);
-                                                                                };
-                                                                                img.onerror = reject;
-                                                                            };
-                                                                            reader.onerror = reject;
-                                                                            reader.readAsDataURL(file);
-                                                                        });
-                                                                        const storageRef = ref(storage, `creators/${auth.currentUser.uid}/theme/bg-image-${Date.now()}.jpg`);
-                                                                        await uploadBytes(storageRef, compressedBlob, { contentType: 'image/jpeg' });
-                                                                        const url = await getDownloadURL(storageRef);
-                                                                        setVideoBgUrl(url);
-                                                                    } catch (err: any) {
-                                                                        console.error('[BG UPLOAD ERROR]', err);
-                                                                        toast.error(`Error al subir imagen: ${err?.code || err?.message || 'desconocido'}`);
-                                                                    } finally {
-                                                                        setIsSaving(false);
-                                                                        e.target.value = '';
-                                                                    }
-                                                                }}
-                                                            />
-                                                        </label>
-                                                    )}
+                                                    <ImageUploader
+                                                        label="🖼️ Fondo o Banner de Pantalla"
+                                                        folder="theme"
+                                                        previewUrl={videoBgUrl}
+                                                        onUploadSuccess={(url) => setVideoBgUrl(url)}
+                                                    />
                                                 </div>
 
                                                 <div className="space-y-2">
@@ -787,37 +729,7 @@ export default function CreatorDashboard() {
                                         </form>
                                     </div>
 
-                                    {/* SECCIÓN INFORMACIÓN PERSONAL (AHORA SEGUNDA) */}
-                                    <div className="bg-gray-900/40 backdrop-blur-md border border-gray-800 rounded-3xl p-6 shadow-2xl mt-8">
-                                        <h3 className="text-xl font-bold mb-6 text-white tracking-tight">Información de Perfil</h3>
-                                        <form onSubmit={handleSaveProfile} className="space-y-6">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-400 mb-2">Nombre Público</label>
-                                                <input
-                                                    type="text"
-                                                    value={displayName}
-                                                    onChange={(e) => setDisplayName(e.target.value)}
-                                                    className="w-full bg-gray-800/30 border border-gray-700/50 rounded-2xl px-5 py-4 focus:ring-1 outline-none text-white transition-all"
-                                                    style={{ '--tw-ring-color': primaryColor } as any}
-                                                    required
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-400 mb-2">Breve Biografía</label>
-                                                <textarea
-                                                    rows={3}
-                                                    value={bio}
-                                                    onChange={(e) => setBio(e.target.value)}
-                                                    className="w-full bg-gray-800/30 border border-gray-700/50 rounded-2xl px-5 py-4 focus:ring-1 outline-none text-white resize-none transition-all"
-                                                    style={{ '--tw-ring-color': primaryColor } as any}
-                                                    placeholder="Cuéntale al mundo quién eres..."
-                                                />
-                                            </div>
-                                            <div className="flex justify-end pt-4">
-                                                <button type="submit" disabled={isSaving} className="text-gray-400 hover:text-white font-bold transition-colors">Actualizar Perfil</button>
-                                            </div>
-                                        </form>
-                                    </div>
+
                                 </motion.div>
                             )}
 
@@ -909,11 +821,20 @@ export default function CreatorDashboard() {
 
                                 <div className="relative z-10 flex flex-col items-center p-6 text-center">
                                     <div className="relative w-24 h-24 flex-shrink-0 mt-4 overflow-hidden rounded-full border-4" style={{ borderColor: primaryColor }}>
-                                        <Image src={creatorData.avatarUrl || '/default-avatar.png'} alt="Avatar" fill sizes="96px" className="object-cover aspect-square" />
+                                        <img
+                                            src={creatorData.avatarUrl || getSmartAvatar(creatorData.displayName || creatorData.username, creatorData.username)}
+                                            alt="Avatar"
+                                            className="w-full h-full object-cover aspect-square"
+                                            referrerPolicy="no-referrer"
+                                        />
                                     </div>
-                                    <h2 className={`text-2xl font-bold mt-4 leading-tight break-words text-center flex items-center justify-center ${activeSkinObj.textClass}`}>
-                                        {displayName}
-                                        {(creatorData.isVerified || creatorData.isPremium) && <VerifiedBadge />}
+                                    <h2 className={`text-2xl font-bold mt-4 leading-tight text-center inline-flex items-center justify-center gap-2 ${activeSkinObj.textClass}`}>
+                                        <span className="truncate max-w-[240px]">{displayName || creatorData.displayName}</span>
+                                        {(creatorData.isVerified || creatorData.isPremium) && (
+                                            <span className="flex-shrink-0 scale-90 -ml-1">
+                                                <VerifiedBadge />
+                                            </span>
+                                        )}
                                     </h2>
                                     <p className={`text-sm mt-2 mb-6 px-4 ${activeSkinObj.textClass} opacity-80`}>{bio}</p>
 
